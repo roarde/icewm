@@ -6,7 +6,6 @@
 #include "config.h"
 
 #include "yfull.h"
-#include "yutil.h"
 #include "atray.h"
 #include "wmapp.h"
 #include "wmaction.h"
@@ -40,6 +39,7 @@
 #include "yicon.h"
 #include "prefs.h"
 #include "upath.h"
+#include "udir.h"
 #include "appnames.h"
 
 #include "intl.h"
@@ -93,15 +93,15 @@ YMenu *windowListAllPopup(NULL);
 YMenu *logoutMenu(NULL);
 
 #ifndef NO_CONFIGURE
-static char *configFile(NULL);
-static char *overrideTheme(NULL);
+static const char* configFile;
+static const char* overrideTheme;
 #endif
 
 #ifndef XTERMCMD
 #define XTERMCMD xterm
 #endif
 
-static char *configArg(NULL);
+static const char* configArg;
 
 ref<YIcon> defaultAppIcon;
 static bool replace_wm;
@@ -739,12 +739,13 @@ static void initPixmaps() {
             if(titleB[a]._ptr())
                titleB[a]->replicate(true, copyMask);
         }
-
+    }
+    if (wmLook == lookPixmap || wmLook == lookMetal || wmLook == lookGtk || wmLook == lookFlat || wmLook == lookMotif) {
         menuButton[0] = paths->loadPixmap(0, "menuButtonI.xpm");
         menuButton[1] = paths->loadPixmap(0, "menuButtonA.xpm");
-    if (rolloverTitleButtons) {
-        menuButton[2] = paths->loadPixmap(0, "menuButtonO.xpm");
-    }
+        if (rolloverTitleButtons) {
+            menuButton[2] = paths->loadPixmap(0, "menuButtonO.xpm");
+        }
     }
 #endif
     {
@@ -1250,24 +1251,27 @@ YWMApp::YWMApp(int *argc, char ***argv, const char *displayName):
     YSMApplication(argc, argv, displayName)
 {
 #ifndef NO_CONFIGURE
+    if (configFile == 0 || *configFile == 0)
+        configFile = "preferences";
+    if (overrideTheme && *overrideTheme)
+        themeName = overrideTheme;
+    else
     {
         cfoption theme_prefs[] = {
             OSV("Theme", &themeName, "Theme name"),
             OK0()
         };
         
-        YConfig::findLoadConfigFile(this, theme_prefs, "preferences");
+        YConfig::findLoadConfigFile(this, theme_prefs, configFile);
         YConfig::findLoadConfigFile(this, theme_prefs, "theme");
     }
-    if (overrideTheme)
-        themeName = newstr(overrideTheme);
 #endif
 
     wmapp = this;
     managerWindow = None;
 
 #ifndef NO_CONFIGURE
-    loadConfiguration(this, configFile ? configFile : "preferences");
+    loadConfiguration(this, configFile);
     if (themeName != 0) {
         MSG(("themeName=%s", themeName));
 
@@ -1659,7 +1663,6 @@ static void print_usage(const char *argv0) {
              "\n"
              "  -c, --config=FILE   Load preferences from FILE.\n"
              "  -t, --theme=FILE    Load theme from FILE.\n"
-             "  -n, --no-configure  Ignore preferences file.\n"
              "\n"
              "  -V, --version       Prints version information and exits.\n"
              "  -h, --help          Prints this usage screen and exits.\n"
@@ -1668,6 +1671,7 @@ static void print_usage(const char *argv0) {
              "  --restart           Don't use this: It's an internal flag.\n"
              "  --configured        Print the compile time configuration.\n"
              "  --directories       Print the configuration directories.\n"
+             "  --list-themes       Print a list of all available themes.\n"
              "  --postpreferences   Print preferences after all processing.\n"
              "\n"
              "Environment variables:\n"
@@ -1689,18 +1693,43 @@ static void print_usage(const char *argv0) {
     exit(0);
 }
 
+static void print_themes_list() {
+    themeName = 0;
+    ref<YResourcePaths> res(YResourcePaths::subdirs(null, true));
+    for (int i = 0; i < res->getCount(); ++i) {
+        YObjectArray<upath> store;
+        for (udir dir(res->getPath(i)); dir.next(); ) {
+            upath thmp(dir.path() + dir.entry());
+            if (thmp.dirExists()) {
+                for (udir thmdir(thmp); thmdir.nextExt(".theme"); ) {
+                    upath theme(thmdir.path() + thmdir.entry());
+                    int k = 0;
+                    for (; k < store.getCount(); ++k)
+                        if (theme.path().compareTo(store[k]->path()) < 0)
+                            break;
+                    store.insert(k, new upath(theme));
+                }
+            }
+        }
+        for (int k = 0; k < store.getCount(); ++k) {
+            puts(store[k]->string().c_str());
+        }
+    }
+    exit(0);
+}
+
 static void print_confdir(const char *name, const char *path) {
     printf("%s=%s\n", name, path);
 }
 
 static void print_directories(const char *argv0) {
     printf(_("%s configuration directories:\n"), argv0);
-    print_confdir("CFGDIR", CFGDIR);
-    print_confdir("DOCDIR", DOCDIR);
-    print_confdir("LIBDIR", LIBDIR);
-    print_confdir("LOCDIR", LOCDIR);
     print_confdir("XdgConfDir", YApplication::getXdgConfDir().string());
     print_confdir("PrivConfDir", YApplication::getPrivConfDir().string());
+    print_confdir("CFGDIR", CFGDIR);
+    print_confdir("LIBDIR", LIBDIR);
+    print_confdir("LOCDIR", LOCDIR);
+    print_confdir("DOCDIR", DOCDIR);
     exit(0);
 }
 
@@ -1858,14 +1887,14 @@ int main(int argc, char **argv) {
 #endif
 #ifndef NO_CONFIGURE
             char *value;
-            if(GetLongArgument(value, "config", arg, argv+argc)
-            		|| GetShortArgument(value, "c", arg, argv+argc))
+            if (GetLongArgument(value, "config", arg, argv+argc) ||
+               GetShortArgument(value, "c", arg, argv+argc))
             {
                 configArg = configFile = value;
                 continue;
             }
-            else if ( GetLongArgument(value, "theme", arg, argv+argc) ||
-            		GetLongArgument(value, "t", arg, argv+argc))
+            else if (GetLongArgument(value, "theme", arg, argv+argc)
+                 || GetShortArgument(value, "t", arg, argv+argc))
             {
                 overrideTheme = value;
                 continue;
@@ -1880,6 +1909,8 @@ int main(int argc, char **argv) {
                 print_configured(argv[0]);
             else if (is_long_switch(*arg, "directories"))
                 print_directories(argv[0]);
+            else if (is_long_switch(*arg, "list-themes"))
+                print_themes_list();
             else if (is_long_switch(*arg, "postpreferences"))
                 post_preferences = true;
             else if (is_help_switch(*arg))

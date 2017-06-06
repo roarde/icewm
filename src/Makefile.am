@@ -5,7 +5,6 @@ AM_CXXFLAGS = $(CORE_CFLAGS) $(XSM_CFLAGS) $(IMAGE_CFLAGS) $(AUDIO_CFLAGS) $(GNO
 EXTRA_DIST = \
 	ylibrary.cc \
 	ylibrary.h \
-	ybase.h \
 	ypointer.h \
 	globit.c
 
@@ -100,7 +99,6 @@ libice_la_SOURCES = \
 	default.h \
 	prefs.h \
 	ypoll.h \
-	yutil.h \
 	ylib.h \
 	ykey.h \
 	yfull.h \
@@ -111,6 +109,8 @@ libice_la_SOURCES = \
 	mstring.h \
 	upath.cc \
 	upath.h \
+	udir.cc \
+	udir.h \
 	yapp.cc \
 	yapp.h \
 	MwmUtil.h \
@@ -230,7 +230,6 @@ icewm_SOURCES = \
 	objbutton.h \
 	WinMgr.h \
 	ypoll.h \
-	yutil.h \
 	ylib.h \
 	ymsgbox.cc \
 	ymsgbox.h \
@@ -483,6 +482,7 @@ strtest_SOURCES = \
 	debug.h \
 	sysdep.h \
 	base.h \
+	udir.h \
 	strtest.cc \
 	mstring.h
 strtest_LDADD = libice.la

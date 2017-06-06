@@ -1,9 +1,6 @@
 #ifndef __YCURSOR_H
 #define __YCURSOR_H
 
-#include "config.h"
-#include "upath.h"
-
 class YCursor {
 public:
 #if 0
@@ -49,7 +46,7 @@ private:
     Cursor fCursor;
     bool fOwned;
 
-    void load(upath path);
+    bool load(upath path);
 };
 
 #endif

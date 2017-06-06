@@ -4,8 +4,6 @@
 #include "yapp.h"
 
 #include "ywindow.h"
-#include "ycursor.h"
-#include "ypoll.h"
 
 class YXPoll: public YPoll<class YXApplication> {
 public:
@@ -76,6 +74,9 @@ public:
     unsigned int KeyMask;
     unsigned int ButtonMask;
     unsigned int ButtonKeyMask;
+
+    static const char* getHelpText();
+
 private:
     Display *fDisplay;
     Time lastEventTime;
