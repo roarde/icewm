@@ -1,7 +1,6 @@
 #ifndef __MSTRING_H
 #define __MSTRING_H
 
-#include "base.h"
 #include "ref.h"
 #include <string.h>
 
@@ -88,6 +87,7 @@ public:
     int count(char ch) const;
 
     bool equals(const mstring &s) const;
+    int collate(const mstring &s) const;
     int compareTo(const mstring &s) const;
     bool copyTo(char *dst, size_t len) const;
 

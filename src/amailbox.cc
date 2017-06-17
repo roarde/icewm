@@ -18,17 +18,11 @@
 #include "base.h"
 #include "prefs.h"
 #include "wmapp.h"
+#include "wpixmaps.h"
 #include <sys/socket.h>
 #include <netdb.h>
 
 static YColor *taskBarBg = 0;
-extern ref<YPixmap> taskbackPixmap;
-
-ref<YPixmap> mailPixmap;
-ref<YPixmap> noMailPixmap;
-ref<YPixmap> errMailPixmap;
-ref<YPixmap> unreadMailPixmap;
-ref<YPixmap> newMailPixmap;
 
 MailCheck::MailCheck(MailBoxStatus *mbx):
     state(IDLE), fMbx(mbx), fLastSize(-1), fLastCount(-1),
@@ -453,7 +447,7 @@ void MailBoxStatus::mailChecked(MailBoxState mst, long count) {
     else {
         char s[128] = "";
         if (count != -1) {
-            sprintf(s,
+            snprintf(s, sizeof s,
                     count == 1 ?
                     _("%ld mail message.") :
                     _("%ld mail messages."), // too hard to do properly

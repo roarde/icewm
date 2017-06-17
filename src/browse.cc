@@ -44,23 +44,22 @@ void BrowseMenu::updatePopup() {
 
         removeAll();
 
-        for (udir dir(fPath); dir.next(); ) {
-            upath npath(fPath + dir.entry());
+#ifndef LITE
+        ref<YIcon> file = YIcon::getIcon("file");
+        ref<YIcon> folder = YIcon::getIcon("folder");
+#endif
+
+        for (adir dir(fPath.string()); dir.next(); ) {
+            ustring entry(dir.entry());
+            upath npath(fPath + entry);
 
             YMenu *sub = 0;
             if (npath.dirExists())
                 sub = new BrowseMenu(app, smActionListener, wmActionListener, npath);
 
-            DFile *pfile = new DFile(app, dir.entry(), null, npath);
+            DFile *pfile = new DFile(app, entry, null, npath);
             YMenuItem *item = add(new DObjectMenuItem(pfile));
             if (item) {
-#ifndef LITE
-                static ref<YIcon> file, folder;
-                if (file == null)
-                    file = YIcon::getIcon("file");
-                if (folder == null)
-                    folder = YIcon::getIcon("folder");
-#endif
                 item->setSubmenu(sub);
 #ifndef LITE
                 if (sub) {

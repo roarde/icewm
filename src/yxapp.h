@@ -51,8 +51,6 @@ public:
 
     YWindow *grabWindow() const { return fGrabWindow; }
 
-    void initModifiers();
-
     void alert();
 
     void setClipboardText(const ustring &data);
@@ -94,6 +92,11 @@ private:
 
     virtual bool handleXEvents();
     virtual void flushXEvents();
+
+    void initModifiers();
+    static void initAtoms();
+    static void initPointers();
+    static void initColors();
 };
 
 extern YXApplication *xapp;

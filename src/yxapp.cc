@@ -11,6 +11,7 @@
 #include "yprefs.h"
 #include "ypixbuf.h"
 #include "yconfig.h"
+#include "ypointer.h"
 
 #include <sys/resource.h>
 #include <stdlib.h>
@@ -193,42 +194,6 @@ Atom XA_XdndStatus;
 YColor *YColor::black(NULL);
 YColor *YColor::white(NULL);
 
-ref<YPixmap> buttonIPixmap;
-ref<YPixmap> buttonAPixmap;
-
-ref<YPixmap> logoutPixmap;
-ref<YPixmap> switchbackPixmap;
-ref<YPixmap> listbackPixmap;
-ref<YPixmap> dialogbackPixmap;
-
-ref<YPixmap> menubackPixmap;
-ref<YPixmap> menusepPixmap;
-ref<YPixmap> menuselPixmap;
-
-#ifdef CONFIG_GRADIENTS
-ref<YImage> buttonIPixbuf;
-ref<YImage> buttonAPixbuf;
-
-ref<YImage> logoutPixbuf;
-ref<YImage> switchbackPixbuf;
-ref<YImage> listbackPixbuf;
-ref<YImage> dialogbackPixbuf;
-
-ref<YImage> menubackPixbuf;
-ref<YImage> menuselPixbuf;
-ref<YImage> menusepPixbuf;
-#endif
-
-//changed robc
-ref<YPixmap> closePixmap[3];
-ref<YPixmap> minimizePixmap[3];
-ref<YPixmap> maximizePixmap[3];
-ref<YPixmap> restorePixmap[3];
-ref<YPixmap> hidePixmap[3];
-ref<YPixmap> rollupPixmap[3];
-ref<YPixmap> rolldownPixmap[3];
-ref<YPixmap> depthPixmap[3];
-
 #ifdef CONFIG_SHAPE
 int shapesSupported;
 int shapeEventBase, shapeErrorBase;
@@ -325,7 +290,7 @@ private:
 };
 
 
-static void initAtoms() {
+void YXApplication::initAtoms() {
     struct {
         Atom *atom;
         const char *name;
@@ -514,13 +479,14 @@ static void initAtoms() {
 #endif
 }
 
-static void initPointers() {
-    YXApplication::leftPointer.load("left.xpm",  XC_left_ptr);
-    YXApplication::rightPointer.load("right.xpm", XC_right_ptr);
-    YXApplication::movePointer.load("move.xpm",  XC_fleur);
+void YXApplication::initPointers() {
+    osmart<YCursorLoader> l(YCursor::newLoader());
+    leftPointer  = l->load("left.xpm",  XC_left_ptr);
+    rightPointer = l->load("right.xpm", XC_right_ptr);
+    movePointer  = l->load("move.xpm",  XC_fleur);
 }
 
-static void initColors() {
+void YXApplication::initColors() {
     YColor::black = new YColor("rgb:00/00/00");
     YColor::white = new YColor("rgb:FF/FF/FF");
 }

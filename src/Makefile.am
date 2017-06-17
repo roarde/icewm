@@ -143,6 +143,7 @@ libice_la_SOURCES = \
 	yxembed.cc \
 	yxembed.h \
 	binascii.h \
+	argument.h \
 	yconfig.cc \
 	yconfig.h \
 	yprefs.cc \
@@ -268,8 +269,11 @@ icewm_SOURCES = \
 	wmmgr.cc \
 	wmmgr.h \
 	appnames.h \
-	wmapp.cc \
 	guievent.h \
+	wpixmaps.h \
+	wpixres.cc \
+	wpixres.h \
+	wmapp.cc \
 	wmapp.h \
 	wmframe.cc \
 	wmframe.h \
@@ -379,9 +383,7 @@ icewm_menu_gnome1_SOURCES = \
 	default.h \
 	ylib.h \
 	gnome.cc \
-	ascii.h \
-	ycmdline.cc \
-	ycmdline.h
+	ascii.h
 icewm_menu_gnome1_LDADD = libice.la $(GNOME1_LIBS) $(CORE_LIBS)
 
 icewm_menu_gnome2_SOURCES = \
@@ -393,9 +395,7 @@ icewm_menu_gnome2_SOURCES = \
 	default.h \
 	ylib.h \
 	gnome2.cc \
-	ascii.h \
-	ycmdline.cc \
-	ycmdline.h
+	ascii.h
 icewm_menu_gnome2_LDADD = libice.la $(GNOME2_LIBS) $(CORE_LIBS)
 
 icewm_menu_fdo_SOURCES = \

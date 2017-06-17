@@ -4,13 +4,12 @@
 #include "yxapp.h"
 #include "yarray.h"
 
-#if 1
 #include <stdio.h>
 #include "intl.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#endif
+#include <signal.h>
 
 #include "yconfig.h"
 #include "yprefs.h"
@@ -482,7 +481,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    nice(5);
+    if (nice(5)) ;
 
     bg = new DesktopBackgroundManager(&argc, &argv);
 
