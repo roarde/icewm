@@ -13,7 +13,7 @@
 #define __YPOINTER_H
 
 /**************************************************************************
- * Smart pointers behave like pointers but delete the object they own when 
+ * Smart pointers behave like pointers but delete the object they own when
  * they go out of scope. The following smart pointers are distinguished:
  *
  *   1. osmart for `new` objects, deallocated by delete.
@@ -125,6 +125,7 @@ public:
     }
 
     void operator=(const osmart& some) { super::copy(some); }
+    void operator=(DataType *some) { super::data(some, odispose); }
 };
 
 // For arrays which were allocated with 'new[]'.
@@ -141,12 +142,11 @@ public:
         : super(copy) {}
 
     void operator=(const asmart& some) { super::copy(some); }
+    void operator=(DataType *some) { super::data(some, adispose); }
 
     void data(DataType *some, dispose_t disp = adispose) {
         super::data(some, disp);
     }
-
-    DataType& operator[](int index) const { return super::data()[index]; }
 };
 
 // for new[] character strings
@@ -161,6 +161,7 @@ public:
         : super(copy) {}
 
     void operator=(const csmart& some) { super::copy(some); }
+    void operator=(char *some) { super::data(some, adispose); }
 };
 
 // for malloc data
@@ -180,6 +181,9 @@ public:
     }
 
     void operator=(const fsmart& some) { super::copy(some); }
+    void operator=(DataType *some) { super::data(some, fdispose); }
 };
 
 #endif
+
+// vim: set sw=4 ts=4 et:

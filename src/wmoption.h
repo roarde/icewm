@@ -4,9 +4,8 @@
 #ifndef NO_WINDOW_OPTIONS
 
 #include <X11/Xproto.h>
-#include "yarray.h"
-#include "mstring.h"
 #include "upath.h"
+#include "yarray.h"
 
 struct WindowOption {
     WindowOption(ustring n_class_instance);
@@ -55,3 +54,5 @@ void loadWinOptions(upath optFile);
 #endif
 
 #endif
+
+// vim: set sw=4 ts=4 et:

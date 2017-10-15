@@ -27,10 +27,8 @@ YColor *SwitchWindow::switchMfg(NULL);
 
 ref<YFont> SwitchWindow::switchFont;
 
-SwitchWindow * switchWindow(NULL);
-
 SwitchWindow::SwitchWindow(YWindow *parent):
-    YPopupWindow(parent) INIT_GRADIENT(fGradient, NULL) {
+    YPopupWindow(parent) INIT_GRADIENT(fGradient, null) {
     // why this checks here?
     if (switchBg == 0)
         switchBg = new YColor(clrQuickSwitch);
@@ -462,7 +460,7 @@ int SwitchWindow::GetZListWorkspace(YFrameWindow **list, int max,
 
             if (w == fRoot->getFocus()) {
                 if (pass == 0) list[count++] = w;
-            } else if (w->isUrgent()) {              
+            } else if (w->isUrgent()) {
                 if (quickSwitchToUrgent) {
                     if (pass == 1) list[count++] = w;
                 } else {
@@ -745,3 +743,5 @@ bool SwitchWindow::modDown(int mod) {
 void SwitchWindow::handleButton(const XButtonEvent &button) {
     YPopupWindow::handleButton(button);
 }
+
+// vim: set sw=4 ts=4 et:

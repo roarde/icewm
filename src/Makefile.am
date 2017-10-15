@@ -3,8 +3,6 @@ AM_CPPFLAGS = -include ../config.h
 AM_CXXFLAGS = $(CORE_CFLAGS) $(XSM_CFLAGS) $(IMAGE_CFLAGS) $(AUDIO_CFLAGS) $(GNOME1_CFLAGS) $(GNOME2_CFLAGS) $(GIO_CFLAGS) -DEXEEXT=$(EXEEXT)
 
 EXTRA_DIST = \
-	ylibrary.cc \
-	ylibrary.h \
 	ypointer.h \
 	globit.c
 
@@ -42,14 +40,6 @@ bin_PROGRAMS = \
 	icewmbg \
 	icewmtray
 
-AM_INSTALLCHECK_STD_OPTIONS_EXEMPT = \
-	icewm-session \
-	icesh \
-	icewmhint \
-	icewmbg \
-	icewmtray
-
-
 noinst_PROGRAMS = \
 	genpref
 
@@ -72,7 +62,6 @@ endif
 
 if BUILD_HELP
 bin_PROGRAMS += icehelp
-AM_INSTALLCHECK_STD_OPTIONS_EXEMPT += icehelp
 endif
 
 if BUILD_SOUND
@@ -81,12 +70,10 @@ endif
 
 if BUILD_MENU_GNOME2
 bin_PROGRAMS += icewm-menu-gnome2
-AM_INSTALLCHECK_STD_OPTIONS_EXEMPT += icewm-menu-gnome2
 endif
 
 if BUILD_MENU_FDO
 bin_PROGRAMS += icewm-menu-fdo
-AM_INSTALLCHECK_STD_OPTIONS_EXEMPT += icewm-menu-fdo
 endif
 
 libice_la_SOURCES = \
@@ -132,12 +119,12 @@ libice_la_SOURCES = \
 	ysocket.h \
 	ypaths.cc \
 	ypaths.h \
-	ypixbuf.cc \
-	ypixbuf.h \
 	ylocale.cc \
 	ylocale.h \
 	yarray.cc \
 	yarray.h \
+	ycollections.h \
+	ycollections.cc \
 	ypipereader.cc \
 	ypipereader.h \
 	yxembed.cc \
@@ -153,7 +140,6 @@ libice_la_SOURCES = \
 	yfontxft.cc \
 	ypixmap.cc \
 	ypixmap.h \
-	yimage.cc \
 	yimage.h \
 	yimage_gdk.cc \
 	yimage_imlib.cc \
@@ -259,7 +245,6 @@ icewm_SOURCES = \
 	wmstatus.h \
 	wmoption.cc \
 	wmoption.h \
-	wmaction.cc \
 	wmaction.h \
 	wmcontainer.cc \
 	wmcontainer.h \
@@ -331,12 +316,14 @@ icesh_SOURCES = \
 icesh_LDADD = libice.la $(CORE_LIBS)
 
 icewm_session_SOURCES = \
-	intl.h \
-	debug.h \
-	sysdep.h \
+	appnames.h \
 	base.h \
+	debug.h \
+	intl.h \
+	sysdep.h \
+	yapp.h \
 	icesm.cc
-icewm_session_LDADD = libice.la $(IMAGE_LIBS) $(CORE_LIBS)
+icewm_session_LDADD = libice.la
 
 icewmhint_SOURCES = \
 	intl.h \
@@ -362,16 +349,15 @@ icewmbg_SOURCES = \
 icewmbg_LDADD = libice.la $(IMAGE_LIBS) $(CORE_LIBS)
 
 icesound_SOURCES = \
-	intl.h \
-	debug.h \
-	sysdep.h \
 	base.h \
+	debug.h \
 	guievent.h \
-	ylib.h \
-	icesound.cc \
-	ascii.h \
-	ycmdline.cc \
-	ycmdline.h
+	intl.h \
+	sysdep.h \
+	upath.h \
+	ypointer.h \
+	ytimer.h \
+	icesound.cc
 icesound_LDADD = libice.la $(AUDIO_LIBS) $(CORE_LIBS)
 
 icewm_menu_gnome1_SOURCES = \
@@ -458,7 +444,6 @@ icebar_SOURCES = \
 	ascii.h \
 	themes.cc \
 	themes.h \
-	wmaction.cc \
 	wmaction.h \
 	amailbox.cc \
 	amailbox.h \
@@ -594,7 +579,6 @@ testmenus_SOURCES = \
 	prefs.h \
 	wmprog.cc \
 	wmprog.h \
-	wmaction.cc \
 	wmaction.h \
 	ascii.h \
 	themes.cc \
@@ -637,7 +621,7 @@ testlocale_SOURCES = \
 	base.h \
 	ylib.h \
 	testlocale.cc
-testlocale_LDADD = libice.la
+testlocale_LDADD = libice.la $(CORE_LIBS)
 
 testarray_SOURCES = \
 	intl.h \
@@ -652,7 +636,7 @@ nodist_pkgdata_DATA = \
 	preferences
 
 preferences: genpref$(EXEEXT)
-	./genpref$(EXEEXT) >$@
+	$(AM_V_GEN)./genpref$(EXEEXT) >$@
 
 CLEANFILES = preferences
 

@@ -18,7 +18,7 @@ public:
     virtual ~DProgram();
 
     virtual void open();
-    
+
     static char *fullname(const char *exe);
     static DProgram *newProgram(
         IApp *app,
@@ -28,7 +28,7 @@ public:
         const bool restart,
         const char *wmclass,
         upath exe,
-        YStringArray &args);
+        const YStringArray &args);
 
 protected:
     DProgram(
@@ -39,7 +39,7 @@ protected:
         const bool restart,
         const char *wmclass,
         upath exe,
-        YStringArray &args);
+        const YStringArray &args);
 
 private:
     const bool fRestart;
@@ -89,7 +89,7 @@ public:
         upath command,
         YStringArray &args,
         YWindow *parent = 0);
-        
+
     virtual ~MenuProgMenu();
     virtual void updatePopup();
     virtual void refresh(
@@ -121,15 +121,27 @@ protected:
     time_t fTimeout;
 };
 
+class FocusMenu: public YMenu {
+public:
+    FocusMenu();
+};
+
+class HelpMenu: public ObjectMenu {
+public:
+    HelpMenu(IApp *app,
+            YSMListener *smActionListener,
+            YActionListener *wmActionListener);
+};
+
 class StartMenu: public MenuFileMenu {
 public:
     StartMenu(
         IApp *app,
         YSMListener *smActionListener,
-        YActionListener *wmActionListener,    
+        YActionListener *wmActionListener,
         const char *name,
         YWindow *parent = 0);
-        
+
     virtual bool handleKey(const XKeyEvent &key);
     virtual void updatePopup();
     virtual void refresh();
@@ -140,12 +152,13 @@ public:
 
 private:
     YSMListener *smActionListener;
-    YActionListener *wmActionListener;  
+    YActionListener *wmActionListener;
 };
 
 class KProgram {
 public:
     KProgram(const char *key, DProgram *prog);
+    ~KProgram() { delete fProg; }
 
     bool isKey(KeySym key, unsigned int mod) {
         return (key == fKey && mod == fMod) ? true : false;
@@ -157,16 +170,14 @@ public:
     KeySym key() { return fKey; }
     unsigned int modifiers() { return fMod; }
 
-    KProgram *getNext() { return fNext; }
 private:
-    KProgram *fNext;
     KeySym fKey;
     unsigned int fMod;
     DProgram *fProg;
 };
 
-extern KProgram *keyProgs;
-
 #endif /* NO_CONFIGURE_MENUS */
 
 #endif
+
+// vim: set sw=4 ts=4 et:

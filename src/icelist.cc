@@ -9,7 +9,6 @@
 #include "yinputline.h"
 #include "wmmgr.h"
 #include "yrect.h"
-#include "ypixbuf.h"
 #include "ypaint.h"
 #include "sysdep.h"
 #include "yicon.h"
@@ -77,11 +76,6 @@ public:
     ObjectListBox(ObjectList *list, YScrollView *view, YWindow *aParent): YListBox(view, aParent) {
         fObjList = list;
 
-        actionOpenList = new YAction();
-        actionOpenIcon = new YAction();
-        actionOpen = new YAction();
-        actionClose = new YAction();
-
         YMenu *openMenu = new YMenu();
         openMenu->addItem(_("List View"), 0, null, actionOpenList);
         openMenu->addItem(_("Icon View"), 0, null, actionOpenIcon);
@@ -111,17 +105,17 @@ public:
 
     virtual void activateItem(YListItem *item);
 
-    virtual void actionPerformed(YAction *action, unsigned int /*modifiers*/) {
+    virtual void actionPerformed(YAction action, unsigned int /*modifiers*/) {
         if (action == actionOpenList) {
         }
     }
 private:
     ObjectList *fObjList;
     YMenu *folderMenu;
-    YAction *actionClose;
-    YAction *actionOpen;
-    YAction *actionOpenList;
-    YAction *actionOpenIcon;
+    YAction actionClose;
+    YAction actionOpen;
+    YAction actionOpenList;
+    YAction actionOpenIcon;
 };
 
 class ObjectList: public YWindow {
@@ -415,3 +409,5 @@ int main(int argc, char **argv) {
 
     return app.mainLoop();
 }
+
+// vim: set sw=4 ts=4 et:

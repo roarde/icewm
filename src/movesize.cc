@@ -422,14 +422,13 @@ void YFrameWindow::outlineMove() {
     int xx(x()), yy(y());
 
     XGrabServer(xapp->display());
-    XSync(xapp->display(), False);
 
     for(;;) {
         XEvent xev;
 
         XWindowEvent(xapp->display(), handle(),
-                     KeyPressMask | ExposureMask | 
-                     ButtonPressMask | ButtonReleaseMask | 
+                     KeyPressMask | ExposureMask |
+                     ButtonPressMask | ButtonReleaseMask |
                      PointerMotionMask, &xev);
 
         switch (xev.type) {
@@ -504,14 +503,13 @@ void YFrameWindow::outlineResize() {
     }
 
     XGrabServer(xapp->display());
-    XSync(xapp->display(), False);
 
     for(;;) {
         XEvent xev;
 
         XWindowEvent(xapp->display(), handle(),
                      KeyPressMask | ExposureMask |
-                     ButtonPressMask | ButtonReleaseMask | 
+                     ButtonPressMask | ButtonReleaseMask |
                      PointerMotionMask, &xev);
 
         switch (xev.type) {
@@ -542,7 +540,7 @@ void YFrameWindow::outlineResize() {
                     case -1:
                         goto end;
                 }
-                
+
                 break;
             }
 
@@ -642,7 +640,7 @@ void YFrameWindow::manualPlace() {
 
                 break;
             }
-            
+
 
             case ButtonPress:
             case ButtonRelease:
@@ -952,7 +950,7 @@ void YFrameWindow::startMoveSize(int doMove, int byMouse,
                 grabPointer = YWMApp::sizeRightPointer.handle();
             else
                 grabPointer = YXApplication::leftPointer.handle();
-            
+
         }
 
         if (grabX == 1)
@@ -966,7 +964,6 @@ void YFrameWindow::startMoveSize(int doMove, int byMouse,
             buttonDownY = mouseYroot - y();
     }
 
-    XSync(xapp->display(), False);
     if (!xapp->grabEvents(this,
                           grabPointer,
                           ButtonPressMask |
@@ -1128,3 +1125,5 @@ void YFrameWindow::handleMotion(const XMotionEvent &motion) {
     YWindow::handleMotion(motion);
 }
 
+
+// vim: set sw=4 ts=4 et:

@@ -17,7 +17,7 @@ typedef  { false = 0, true = 1 } bool;
 
 /*
  * Decimal digits required to write the largest element of type:
- * bits(Type) * (2.5 = 5/2 ~ (ln(2) / ln(10)))
+ * bits(Type) * (2.5 = 5/2 ~ (8 * ln(2) / ln(10)))
  */
 #define DECIMAL_DIGIT_COUNT(Type) ((sizeof(Type) * 5 + 1) / 2)
 
@@ -28,12 +28,22 @@ inline T min(T a, T b) {
 
 template <class T>
 inline T max(T a, T b) {
-    return (a > b ? a : b);
+    return (a < b ? b : a);
+}
+
+template <class T>
+inline void swap(T& a, T& b) {
+    T t(a); a = b; b = t;
 }
 
 template <class T>
 inline T clamp(T value, T minimum, T maximum) {
     return max(min(value, maximum), minimum);
+}
+
+template <class T>
+inline bool inrange(T value, T lower, T upper) {
+    return !(value < lower) && !(upper < value);
 }
 
 template <class T>
@@ -44,9 +54,14 @@ inline T abs(T v) {
 /*** String Functions *********************************************************/
 
 /* Prefer this as a safer alternative over strcpy. Return strlen(from). */
+#if !defined(HAVE_STRLCPY) || !HAVE_STRLCPY
 size_t strlcpy(char *dest, const char *from, size_t dest_size);
+#endif
+
 /* Prefer this over strcat. Return strlen(dest) + strlen(from). */
+#if !defined(HAVE_STRLCAT) || !HAVE_STRLCAT
 size_t strlcat(char *dest, const char *from, size_t dest_size);
+#endif
 
 char *newstr(char const *str);
 char *newstr(char const *str, int len);
@@ -152,6 +167,10 @@ bool strequal(const char *a, const char *b);
 int strnullcmp(const char *a, const char *b);
 #endif
 
+inline const char* boolstr(bool bval) {
+    return bval ? "true" : "false";
+}
+
 template <class T>
 inline char const * niceUnit(T & val, char const * const units[],
                              T const lim = 10240, T const div = 1024) {
@@ -165,23 +184,33 @@ inline char const * niceUnit(T & val, char const * const units[],
             val = (val + div / 2) / div;
         }
     }
-    
+
     return uname;
 }
 
 /*** Bit Operations ***********************************************************/
 
+template <class M, class B>
+inline bool hasbit(M mask, B bits) {
+    return (mask & bits) != 0;
+}
+
+template <class M, class B>
+inline bool hasbits(M mask, B bits) {
+    return (mask & bits) == (M) bits;
+}
+
 /*
  * Returns the lowest bit set in mask.
  */
-template <class T> 
+template <class T>
 inline unsigned lowbit(T mask) {
 #if defined(CONFIG_X86_ASM) && defined(__i386__) && \
     defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__ > 208)
     unsigned bit;
     asm ("bsf %1,%0" : "=r" (bit) : "r" (mask));
 #else
-    unsigned bit(0); 
+    unsigned bit(0);
     while(!(mask & (1 << bit)) && bit < sizeof(mask) * 8) ++bit;
 #endif
 
@@ -191,7 +220,7 @@ inline unsigned lowbit(T mask) {
 /*
  * Returns the highest bit set in mask.
  */
-template <class T> 
+template <class T>
 inline unsigned highbit(T mask) {
 #if defined(CONFIG_X86_ASM) && defined(__i386__) && \
     defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__ > 208)
@@ -211,6 +240,7 @@ extern char const *ApplicationName;
 
 bool GetShortArgument(char* &ret, const char *name, char** &argpp, char ** endpp);
 bool GetLongArgument(char* &ret, const char *name, char** &argpp, char ** endpp);
+bool GetArgument(char* &ret, const char *sn, const char *ln, char** &arg, char **end);
 bool is_short_switch(const char *arg, const char *name);
 bool is_long_switch(const char *arg, const char *name);
 bool is_switch(const char *arg, const char *short_name, const char *long_name);
@@ -240,28 +270,9 @@ char* load_text_file(const char *filename);
 #include "debug.h"
 
 inline int intersection(int s1, int e1, int s2, int e2) {
-    int s, e;
-
-    if (s1 > e2)
-        return 0;
-    if (s2 > e1)
-        return 0;
-
-    /* start */
-    if (s2 > s1)
-        s = s2;
-    else
-        s = s1;
-
-    /* end */
-    if (e1 < e2)
-        e = e1;
-    else
-        e = e2;
-    if (e > s)
-        return e - s;
-    else
-        return 0;
+    return max(0, 1 + min(e1, e2) - max(s1, s2));
 }
 
 #endif
+
+// vim: set sw=4 ts=4 et:

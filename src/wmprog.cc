@@ -9,7 +9,6 @@
 
 #define NEED_TIME_H
 
-#include "ykey.h"
 #include "objmenu.h"
 #include "wmprog.h"
 #include "wmoption.h"
@@ -27,14 +26,14 @@
 #include "themes.h"
 #include "browse.h"
 #include "wmtaskbar.h"
-#include "yicon.h"
+#include "ypaths.h"
 #include "intl.h"
 #include "appnames.h"
 #include "ascii.h"
 #include "argument.h"
 
 DObjectMenuItem::DObjectMenuItem(DObject *object):
-    YMenuItem(object->getName(), -3, null, this, 0)
+    YMenuItem(object->getName(), -3, null, YAction(), 0)
 {
     fObject = object;
 #ifndef LITE
@@ -47,7 +46,7 @@ DObjectMenuItem::~DObjectMenuItem() {
     delete fObject;
 }
 
-void DObjectMenuItem::actionPerformed(YActionListener * /*listener*/, YAction * /*action*/, unsigned int /*modifiers*/) {
+void DObjectMenuItem::actionPerformed(YActionListener * /*listener*/, YAction /*action*/, unsigned int /*modifiers*/) {
 #ifdef CONFIG_GUIEVENTS
     wmapp->signalGuiEvent(geLaunchApp);
 #endif
@@ -127,7 +126,7 @@ DProgram::DProgram(
     const bool restart,
     const char *wmclass,
     upath exe,
-    YStringArray &args)
+    const YStringArray &args)
     : DObject(app, name, icon),
     fRestart(restart),
     fRes(newstr(wmclass)),
@@ -161,7 +160,7 @@ DProgram *DProgram::newProgram(
     const bool restart,
     const char *wmclass,
     upath exe,
-    YStringArray &args)
+    const YStringArray &args)
 {
     if (exe != null) {
         MSG(("LOOKING FOR: %s\n", exe.string().c_str()));
@@ -227,14 +226,16 @@ static char *getCommandArgs(char *source, Argument *command,
     return p;
 }
 
-KProgram *keyProgs = 0;
+#ifndef NO_CONFIGURE_MENUS
+YObjectArray<KProgram> keyProgs;
 
-KProgram::KProgram(const char *key, DProgram *prog) {
+KProgram::KProgram(const char *key, DProgram *prog)
+    : fKey(NoSymbol), fMod(0), fProg(prog)
+{
     YConfig::parseKey(key, &fKey, &fMod);
-    fProg = prog;
-    fNext = keyProgs;
-    keyProgs = this;
+    keyProgs.append(this);
 }
+#endif
 
 char *parseIncludeStatement(
         IApp *app,
@@ -504,7 +505,7 @@ char *parseMenus(
                     return p;
                 }
 
-                DProgram *prog = DProgram::newProgram(                
+                DProgram *prog = DProgram::newProgram(
                     app,
                     smActionListener,
                     key,
@@ -526,7 +527,7 @@ char *parseMenus(
 }
 
 void loadMenus(
-    IApp *app, 
+    IApp *app,
     YSMListener *smActionListener,
     YActionListener *wmActionListener,
     upath menufile,
@@ -551,7 +552,7 @@ MenuFileMenu::MenuFileMenu(
     this->app = app;
     this->smActionListener = smActionListener;
     fName = name;
-    fPath = 0;
+    fPath = null;
     fModTime = 0;
     ///    updatePopup();
     ///    refresh();
@@ -584,7 +585,7 @@ void MenuFileMenu::updatePopup() {
     } else {
         struct stat sb;
         if (stat(fPath.string(), &sb) != 0) {
-            fPath = 0;
+            fPath = null;
             refresh();
         } else if (sb.st_mtime > fModTime || rel) {
             fModTime = sb.st_mtime;
@@ -685,7 +686,7 @@ void MenuProgMenu::updatePopup() {
     bool rel = false;
 
 
-    if (fPath == 0) {
+    if (fPath == null) {
         fPath = np;
         rel = true;
     } else {
@@ -705,7 +706,7 @@ void MenuProgMenu::updatePopup() {
     } else {
         if (stat(fPath, &sb) != 0) {
             delete[] fPath;
-            fPath = 0;
+            fPath = null;
             refresh();
         } else if (sb.st_mtime > fModTime || rel) {
             fModTime = sb.st_mtime;
@@ -787,6 +788,74 @@ void StartMenu::updatePopup() {
     MenuFileMenu::updatePopup();
 }
 
+FocusMenu::FocusMenu() {
+    struct FocusModelNameAction {
+        FocusModels mode;
+        const char *name;
+        YAction action;
+    } foci[] = {
+        { FocusClick, _("_Click to focus"), actionFocusClickToFocus },
+        { FocusExplicit, _("_Explicit focus"), actionFocusExplicit },
+        { FocusSloppy, _("_Sloppy mouse focus"), actionFocusMouseSloppy },
+        { FocusStrict, _("S_trict mouse focus"), actionFocusMouseStrict },
+        { FocusQuiet, _("_Quiet sloppy focus"), actionFocusQuietSloppy },
+        { FocusCustom, _("Custo_m"), actionFocusCustom },
+    };
+    for (size_t k = 0; k < ACOUNT(foci); ++k) {
+        YMenuItem *item = addItem(foci[k].name, -2, "", foci[k].action);
+        if (focusMode == foci[k].mode) {
+            item->setEnabled(false);
+            item->setChecked(true);
+        }
+    }
+}
+
+HelpMenu::HelpMenu(
+    IApp *app,
+    YSMListener *smActionListener,
+    YActionListener *wmActionListener)
+    : ObjectMenu(wmActionListener)
+{
+    struct HelpMenuItem {
+        const char *name;
+        const char *menu;
+        const char *clas;
+    } help[] = {
+        { ICEHELPIDX, _("_Manual"), "browser.Manual" },
+        { "icewm.1.html", _("_Icewm(1)"), "browser.IceWM" },
+        { "icewmbg.1.html", _("Icewm_Bg(1)"), "browser.IcewmBg" },
+        { "icesound.1.html", _("Ice_Sound(1)"), "browser.IceSound" },
+    };
+    for (size_t k = 0; k < ACOUNT(help); ++k) {
+        YStringArray args(3);
+        args.append(ICEHELPEXE);
+        if (k == 0) {
+            args.append(help[k].name);
+        } else {
+            upath path = upath(ICEHELPIDX).parent() + help[k].name;
+            args.append(path.string());
+        }
+        args.append(0);
+
+        DProgram *prog = DProgram::newProgram(
+            app,
+            smActionListener,
+            help[k].menu,
+            null,
+            false,
+            help[k].clas,
+            ICEHELPEXE,
+            args);
+
+        if (prog)
+#ifdef LITE
+            addObject(prog);
+#else
+            addObject(prog, "help");
+#endif
+    }
+}
+
 void StartMenu::refresh() {
     MenuFileMenu::refresh();
 
@@ -795,16 +864,13 @@ void StartMenu::refresh() {
 
 /// TODO #warning "make this into a menuprog (ala gnome.cc), and use mime"
     if (openCommand && openCommand[0]) {
-        const char *path[2];
+        upath path[] = { upath::root(), YApplication::getHomeDir() };
         YMenu *sub;
 #ifndef LITE
         ref<YIcon> folder = YIcon::getIcon("folder");
 #endif
-        path[0] = "/";
-        path[1] = getenv("HOME");
-
         for (unsigned int i = 0; i < ACOUNT(path); i++) {
-            const char *p = path[i];
+            upath& p = path[i];
 
             sub = new BrowseMenu(app, smActionListener, wmActionListener, p);
             DFile *file = new DFile(app, p, null, p);
@@ -815,6 +881,9 @@ void StartMenu::refresh() {
                 if (folder != null)
                     item->setIcon(folder);
 #endif
+            }
+            else if (sub) {
+                delete sub;
             }
         }
         addSeparator();
@@ -884,26 +953,12 @@ void StartMenu::refresh() {
 #endif
 
     if (showHelp) {
-        YStringArray args(3);
-        args.append(ICEHELPEXE);
-        args.append(ICEHELPIDX);
-        args.append(0);
-
-        DProgram *help = DProgram::newProgram(
-            app,
-            smActionListener,
-            _("_Help"),
-            null,
-            false,
-            "browser.IceHelp",
-            ICEHELPEXE,
-            args);
-
-        if (help)
+        HelpMenu *helpMenu =
+            new HelpMenu(app, smActionListener, wmActionListener);
 #ifdef LITE
-		addObject(help);
+            addSubmenu(_("_Help"), -2, helpMenu);
 #else
-		addObject(help, "help");
+            addSubmenu(_("_Help"), -2, helpMenu, "help");
 #endif
     }
 #endif
@@ -915,25 +970,7 @@ void StartMenu::refresh() {
         YMenu *settings = this; // new YMenu();
 
         if (showFocusModeMenu) {
-            YMenu *focus = new YMenu();
-            YMenuItem *i = 0;
-
-            i = focus->addItem(_("_Click to focus"), -2, "", actionFocusClickToFocus);
-            if (focusMode == 1) {
-                i->setEnabled(false);
-                i->setChecked(true);
-            }
-            i = focus->addItem(_("_Sloppy mouse focus"), -2, "", actionFocusMouseSloppy);
-            if (focusMode == 2) {
-                i->setEnabled(false);
-                i->setChecked(true);
-            }
-            i = focus->addItem(_("Custo_m"), -2, "", actionFocusCustom);
-            if (focusMode == 0) {
-                i->setEnabled(false);
-                i->setChecked(true);
-            }
-
+            FocusMenu *focus = new FocusMenu();
 #ifdef LITE
             settings->addSubmenu(_("_Focus"), -2, focus);
 #else
@@ -978,3 +1015,5 @@ void StartMenu::refresh() {
     }
 }
 #endif
+
+// vim: set sw=4 ts=4 et:

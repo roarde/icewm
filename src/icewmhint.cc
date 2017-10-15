@@ -26,7 +26,6 @@
 #include <signal.h>
 
 #ifdef CONFIG_GUIEVENTS
-#define GUI_EVENT_NAMES
 #include "guievent.h"
 #endif
 
@@ -43,7 +42,7 @@ char const *ApplicationName = "icewmhint";
 static void print_usage()
 {
     puts(_("Usage: icewmhint [class.instance] option arg\n"));
-    exit(1);
+    exit(0);
 }
 
 int main(int argc, char **argv) {
@@ -73,7 +72,7 @@ int main(int argc, char **argv) {
     int clsin_len = strlen(clsin) + 1;;
     int option_len = strlen(option) + 1;
     int arg_len = strlen(arg) + 1;
-    
+
     int hint_len = clsin_len + option_len + arg_len;
     unsigned char *hint = (unsigned char *)malloc(hint_len);
 
@@ -104,3 +103,5 @@ int main(int argc, char **argv) {
                     hint, hint_len);
     XCloseDisplay(display);
 }
+
+// vim: set sw=4 ts=4 et:

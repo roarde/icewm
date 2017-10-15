@@ -71,7 +71,12 @@ void BrowseMenu::updatePopup() {
                 }
 #endif
             }
+            else if (sub) {
+                delete sub;
+            }
         }
     }
 }
 #endif
+
+// vim: set sw=4 ts=4 et:

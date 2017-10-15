@@ -33,7 +33,7 @@ struct DesktopScreenInfo {
 
 class YWindow {
 public:
-    YWindow(YWindow *aParent = 0, Window win = 0);
+    YWindow(YWindow *aParent = 0, Window win = 0, int depth = CopyFromParent, Visual *visual = CopyFromParent, Colormap colormap = CopyFromParent);
     virtual ~YWindow();
 
     void setStyle(unsigned long aStyle);
@@ -46,11 +46,11 @@ public:
     void repaint();
     void repaintFocus();
     void repaintSync();
-
+    void readAttributes();
     void reparent(YWindow *parent, int x, int y);
 
     void setWindowFocus();
-    
+
     void setTitle(char const * title);
     void setClassHint(char const * rName, char const * rClass);
 
@@ -134,12 +134,15 @@ public:
 #ifdef CONFIG_GRADIENTS
     virtual ref<YImage> getGradient() const {
         return (parent() ? parent()->getGradient() : null); }
-#endif    
+#endif
 
     int x() const { return fX; }
     int y() const { return fY; }
     int width() const { return fWidth; }
     int height() const { return fHeight; }
+    int depth() const { return fDepth; }
+    Visual *visual() const { return fVisual; }
+    Colormap colormap() const { return fColormap; }
 
     bool visible() const { return (flags & wfVisible); }
     bool created() const { return (flags & wfCreated); }
@@ -211,8 +214,9 @@ public:
 
     bool hasPopup();
     void setDoubleBuffer(bool doubleBuffer);
-    
+
     KeySym keyCodeToKeySym(unsigned int keycode, int index = 0);
+    static unsigned long getLastEnterNotifySerial();
 
 private:
     typedef enum {
@@ -231,7 +235,11 @@ private:
     void removeWindow();
 
     bool nullGeometry();
-    
+
+    int fDepth;
+    Visual *fVisual;
+    Colormap fColormap;
+
     YWindow *fParentWindow;
     YWindow *fNextWindow;
     YWindow *fPrevWindow;
@@ -274,13 +282,15 @@ private:
     static unsigned fClickButton;
     static unsigned fClickButtonDown;
     static YTimer *fToolTipTimer;
+    static unsigned long lastEnterNotifySerial;
+    static void updateEnterNotifySerial(const XEvent& event);
 
     bool fDND;
     Window XdndDragSource;
     Window XdndDropTarget;
 
     static YAutoScroll *fAutoScroll;
-    
+
     void addIgnoreUnmap(Window w);
     bool ignoreUnmap(Window w);
     void removeAllIgnoreUnmap(Window w);
@@ -290,7 +300,7 @@ class YDesktop: public YWindow {
 public:
     YDesktop(YWindow *aParent = 0, Window win = 0);
     virtual ~YDesktop();
-    
+
     virtual void resetColormapFocus(bool active);
 
     void updateXineramaInfo(int &w, int &h);
@@ -357,3 +367,5 @@ extern Atom XA_XdndDrop;
 extern Atom XA_XdndFinished;
 
 #endif
+
+// vim: set sw=4 ts=4 et:

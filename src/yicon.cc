@@ -5,14 +5,13 @@
  */
 #include "config.h"
 #include "yfull.h"
-#include "ypixbuf.h"
 #include "ypaint.h"
 #include "yicon.h"
 #include "yapp.h"
 #include "sysdep.h"
 #include "prefs.h"
 #include "yprefs.h"
-#include "wmprog.h" // !!! remove this
+#include "ypaths.h"
 
 #include "intl.h"
 
@@ -37,7 +36,7 @@ YIcon::YIcon(upath filename):
 YIcon::YIcon(ref<YImage> small, ref<YImage> large, ref<YImage> huge) :
     fSmall(small), fLarge(large), fHuge(huge),
     loadedS(small != null), loadedL(large != null), loadedH(huge != null),
-    fPath(NULL), fCached(false)
+    fPath(null), fCached(false)
 {
 }
 
@@ -204,10 +203,10 @@ ref<YImage> YIcon::huge() {
         fHuge = loadIcon(hugeSize());
         loadedH = true;
 
-	if (fHuge == null && large() != null)
+        if (fHuge == null && large() != null)
             fHuge = large()->scale(hugeSize(), hugeSize());
 
-	if (fHuge == null && small() != null)
+        if (fHuge == null && small() != null)
             fHuge = small()->scale(hugeSize(), hugeSize());
     }
 
@@ -219,11 +218,11 @@ ref<YImage> YIcon::large() {
         fLarge = loadIcon(largeSize());
         loadedL = true;
 
-	if (fLarge == null && huge() != null)
+        if (fLarge == null && huge() != null)
             fLarge = huge()->scale(largeSize(), largeSize());
 
-	if (fLarge == null && small() != null)
-	    fLarge = small()->scale(largeSize(), largeSize());
+        if (fLarge == null && small() != null)
+            fLarge = small()->scale(largeSize(), largeSize());
     }
 
     return fLarge;
@@ -236,7 +235,7 @@ ref<YImage> YIcon::small() {
 
         if (fSmall == null && large() != null)
             fSmall = large()->scale(smallSize(), smallSize());
-	if (fSmall == null && huge() != null)
+        if (fSmall == null && huge() != null)
             fSmall = huge()->scale(smallSize(), smallSize());
     }
 
@@ -352,3 +351,5 @@ void YIcon::draw(Graphics &g, int x, int y, int size) {
 }
 
 #endif
+
+// vim: set sw=4 ts=4 et:

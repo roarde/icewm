@@ -15,10 +15,13 @@ public:
     virtual void handleDNDLeave();
     virtual bool handleTimer(YTimer *t);
 
-    virtual void actionPerformed(YAction *button, unsigned int modifiers);
+    virtual void actionPerformed(YAction button, unsigned int modifiers);
     virtual ref<YFont> getFont();
     virtual YColor * getColor();
     virtual YSurface getSurface();
+
+    void updateName();
+    mstring baseName();
 
 private:
     virtual void paint(Graphics &g, const YRect &r);
@@ -55,3 +58,5 @@ private:
 };
 
 #endif
+
+// vim: set sw=4 ts=4 et:

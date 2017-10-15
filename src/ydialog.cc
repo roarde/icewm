@@ -8,24 +8,15 @@
 #include "config.h"
 
 #ifndef LITE
-#include "ypixbuf.h"
-#include "ykey.h"
 #include "ydialog.h"
 #include "wpixmaps.h"
 #include "yxapp.h"
 #include "prefs.h"
-#include "WinMgr.h"
-#include "wmframe.h"
-#include "wmclient.h"
-#include "wmmgr.h"
-#include "wmdialog.h"
-#include "wmabout.h"
-#include "sysdep.h"
 
 static YColor *dialogBg = 0;
 
 YDialog::YDialog(YWindow *owner):
-    YFrameClient(0, 0) INIT_GRADIENT(fGradient, NULL) {
+    YFrameClient(0, 0) INIT_GRADIENT(fGradient, null) {
     if (dialogBg == 0)
         dialogBg = new YColor(clrDialog);
 
@@ -54,8 +45,8 @@ void YDialog::paint(Graphics &g, const YRect &/*r*/) {
 
     if (fGradient != null)
         g.drawImage(fGradient, 0, 0, width() - 2, height() - 2, 1, 1);
-    else 
-#endif    
+    else
+#endif
     if (dialogbackPixmap != null)
         g.fillPixmap(dialogbackPixmap, 1, 1, width() -2, height() - 2);
     else
@@ -76,3 +67,5 @@ bool YDialog::handleKey(const XKeyEvent &key) {
 }
 #endif
 
+
+// vim: set sw=4 ts=4 et:

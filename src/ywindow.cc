@@ -111,19 +111,20 @@ int YWindow::fClickDrag = 0;
 unsigned int YWindow::fClickButton = 0;
 unsigned int YWindow::fClickButtonDown = 0;
 
-unsigned int ignore_enternotify_hack = 0; // credits to ahwm
-
-static void update_ignore_enternotify_hack(const XEvent &event) {
-    ignore_enternotify_hack = event.xany.serial;
-    MSG(("ignore: %10d", ignore_enternotify_hack));
-    if (xapp && xapp->display())
-        XSync(xapp->display(), False);
+unsigned long YWindow::lastEnterNotifySerial; // credits to ahwm
+unsigned long YWindow::getLastEnterNotifySerial() {
+    return lastEnterNotifySerial;
+}
+void YWindow::updateEnterNotifySerial(const XEvent &event) {
+    lastEnterNotifySerial = event.xany.serial;
+    xapp->sync();
 }
 
 /******************************************************************************/
 /******************************************************************************/
 
-YWindow::YWindow(YWindow *parent, Window win):
+YWindow::YWindow(YWindow *parent, Window win, int depth, Visual *visual, Colormap colormap):
+    fDepth(depth), fVisual(visual), fColormap(colormap),
     fParentWindow(parent),
     fNextWindow(0), fPrevWindow(0), fFirstWindow(0), fLastWindow(0),
     fFocusedWindow(0),
@@ -161,7 +162,7 @@ YWindow::~YWindow() {
     fFocusedWindow = 0;
     removeWindow();
     while (fNextWindow != 0)
-	    fNextWindow->removeWindow();
+            fNextWindow->removeWindow();
     while (accel) {
         YAccelerator *next = accel->next;
         delete accel;
@@ -212,7 +213,7 @@ void YWindow::setStyle(unsigned long aStyle) {
 
 
             if ((fStyle & wsDesktopAware) || (fStyle & wsManager) ||
-                (fHandle != RootWindow(xapp->display(), DefaultScreen(xapp->display()))))
+                (fHandle != xapp->root()))
                 fEventMask |=
                     StructureNotifyMask |
                     ColormapChangeMask |
@@ -224,7 +225,7 @@ void YWindow::setStyle(unsigned long aStyle) {
                     SubstructureRedirectMask | SubstructureNotifyMask;
 
             fEventMask |= ButtonPressMask | ButtonReleaseMask | ButtonMotionMask;
-            if (fHandle == RootWindow(xapp->display(), DefaultScreen(xapp->display())))
+            if (fHandle == xapp->root())
                 if (!(fStyle & wsManager) || !grabRootWindow)
                     fEventMask &= ~(ButtonPressMask | ButtonReleaseMask | ButtonMotionMask);
 
@@ -257,6 +258,26 @@ void YWindow::repaintFocus() {
 ///    if ((flags & (wfCreated | wfVisible)) == (wfCreated | wfVisible)) {
 ///        paintFocus(getGraphics(), YRect(0, 0, width(), height()));
 ///    }
+}
+
+void YWindow::readAttributes() {
+    XWindowAttributes attributes;
+
+    XGetWindowAttributes(xapp->display(),
+                         fHandle,
+                         &attributes);
+    fX = attributes.x;
+    fY = attributes.y;
+    fWidth = attributes.width;
+    fHeight = attributes.height;
+
+    //MSG(("window initial geometry (%d:%d %dx%d)",
+    //     fX, fY, fWidth, fHeight));
+
+    if (attributes.map_state != IsUnmapped)
+        flags |= wfVisible;
+    else
+        flags &= ~wfVisible;
 }
 
 void YWindow::create() {
@@ -298,6 +319,16 @@ void YWindow::create() {
             attributes.win_gravity = fWinGravity;
             attrmask |= CWWinGravity;
         }
+        if (fColormap != CopyFromParent) {
+            attributes.colormap = fColormap;
+            attrmask |= CWColormap;
+        }
+        if (fDepth != CopyFromParent) {
+            attributes.background_pixel = xapp->black();
+            attrmask |= CWBackPixel;
+            attributes.border_pixel = xapp->black();
+            attrmask |= CWBorderPixel;
+        }
 
         attributes.event_mask = fEventMask;
         int zw = width();
@@ -311,12 +342,17 @@ void YWindow::create() {
                                 parent()->handle(),
                                 x(), y(), zw, zh,
                                 0,
-                                CopyFromParent,
+                                fDepth,
                                 (fStyle & wsInputOnly) ? InputOnly : InputOutput,
-                                CopyFromParent,
+                                fVisual,
                                 attrmask,
                                 &attributes);
 
+        XWindowAttributes wa;
+        XGetWindowAttributes(xapp->display(), fHandle, &wa);
+        fDepth = wa.depth;
+        fVisual = wa.visual;
+        fColormap = wa.colormap;
         if (parent() == desktop &&
             !(flags & (wsManager | wsOverrideRedirect)))
             XSetWMProtocols(xapp->display(), fHandle, &_XA_WM_DELETE_WINDOW, 1);
@@ -324,28 +360,12 @@ void YWindow::create() {
         if ((flags & wfVisible) && !(flags & wfNullSize))
             XMapWindow(xapp->display(), fHandle);
     } else {
-        XWindowAttributes attributes;
-
-        XGetWindowAttributes(xapp->display(),
-                             fHandle,
-                             &attributes);
-        fX = attributes.x;
-        fY = attributes.y;
-        fWidth = attributes.width;
-        fHeight = attributes.height;
-
-        //MSG(("window initial geometry (%d:%d %dx%d)",
-        //     fX, fY, fWidth, fHeight));
-
-        if (attributes.map_state != IsUnmapped)
-            flags |= wfVisible;
-        else
-            flags &= ~wfVisible;
+        readAttributes();
 
         fEventMask = 0;
 
         if ((fStyle & wsDesktopAware) || (fStyle & wsManager) ||
-            (fHandle != RootWindow(xapp->display(), DefaultScreen(xapp->display()))))
+            (fHandle != xapp->root()))
             fEventMask |=
                 StructureNotifyMask |
                 ColormapChangeMask |
@@ -359,7 +379,7 @@ void YWindow::create() {
 
 
             if (!grabRootWindow &&
-                fHandle == RootWindow(xapp->display(), DefaultScreen(xapp->display())))
+                fHandle == xapp->root())
                 fEventMask &= ~(ButtonPressMask | ButtonReleaseMask | ButtonMotionMask);
         }
 
@@ -373,7 +393,7 @@ void YWindow::destroy() {
     if (flags & wfCreated) {
         if (!(flags & wfDestroyed)) {
             if (!(flags & wfAdopted)) {
-                MSG(("----------------------destroy %X", fHandle));
+                MSG(("----------------------destroy %lX", fHandle));
                 XDestroyWindow(xapp->display(), fHandle);
                 removeAllIgnoreUnmap(fHandle);
             } else {
@@ -570,7 +590,7 @@ void YWindow::handleEvent(const XEvent &event) {
         break;
 
     case ConfigureNotify:
-        update_ignore_enternotify_hack(event);
+        updateEnterNotifySerial(event);
 #if 1
          {
              XEvent new_event, old_event;
@@ -613,12 +633,12 @@ void YWindow::handleEvent(const XEvent &event) {
         handleGraphicsExpose(event.xgraphicsexpose); break;
 
     case MapNotify:
-        update_ignore_enternotify_hack(event);
+        updateEnterNotifySerial(event);
         handleMapNotify(event.xmap);
         break;
 
     case UnmapNotify:
-        update_ignore_enternotify_hack(event);
+        updateEnterNotifySerial(event);
         handleUnmapNotify(event.xunmap);
         break;
 
@@ -639,11 +659,11 @@ void YWindow::handleEvent(const XEvent &event) {
         break;
 
     case GravityNotify:
-        update_ignore_enternotify_hack(event);
+        updateEnterNotifySerial(event);
         break;
 
     case CirculateNotify:
-        update_ignore_enternotify_hack(event);
+        updateEnterNotifySerial(event);
         break;
 
     default:
@@ -1286,7 +1306,7 @@ bool YWindow::changeFocus(bool next) {
             else if (cur->fPrevWindow)
                 cur = cur->fPrevWindow;
             else if (cur->isToplevel())
-                /**/;
+            {}
             else {
                 while (cur->fParentWindow) {
                     cur = cur->fParentWindow;
@@ -1808,14 +1828,12 @@ void YWindow::scrollWindow(int dx, int dy) {
     XRectangle r[2];
     int nr = 0;
 
-    static GC scrollGC = None;
-
-    if (scrollGC == None) {
-        scrollGC = XCreateGC(xapp->display(), desktop->handle(), 0, NULL);
-    }
+    GC scrollGC = XCreateGC(xapp->display(), handle(), 0, NULL);
 
     XCopyArea(xapp->display(), handle(), handle(), scrollGC,
               dx, dy, width(), height(), 0, 0);
+
+    XFreeGC(xapp->display(), scrollGC);
 
     dx = - dx;
     dy = - dy;
@@ -1889,7 +1907,7 @@ void YDesktop::updateXineramaInfo(int &w, int &h) {
         {
             XRRCrtcInfo *ci = XRRGetCrtcInfo(xapp->display(), xrrsr, xrrsr->crtcs[i]);
 
-            MSG(("xrr %d (%d): %d %d %d %d", i, xrrsr->crtcs[i], ci->x, ci->y, ci->width, ci->height));
+            MSG(("xrr %d (%lu): %d %d %d %d", i, xrrsr->crtcs[i], ci->x, ci->y, ci->width, ci->height));
 
             if (!gotLayout && ci->width > 0 && ci->height > 0) {
                 DesktopScreenInfo si;
@@ -1900,19 +1918,19 @@ void YDesktop::updateXineramaInfo(int &w, int &h) {
                 si.height = ci->height;
                 xiInfo.append(si);
             }
-	    XRRFreeCrtcInfo(ci);
+            XRRFreeCrtcInfo(ci);
         }
 
         MSG(("xinerama primary screen name: %s", xineramaPrimaryScreenName));
         for (int o = 0; o < xrrsr->noutput; o++) {
             XRROutputInfo *oinfo = XRRGetOutputInfo(xapp->display(), xrrsr, xrrsr->outputs[o]);
 
-            MSG(("output: %s -> %d", oinfo->name, oinfo->crtc));
+            MSG(("output: %s -> %lu", oinfo->name, oinfo->crtc));
 
 #ifndef NO_CONFIGURE
             if (xineramaPrimaryScreenName != 0 && oinfo->name != NULL) {
                 if (strcmp(xineramaPrimaryScreenName, oinfo->name) == 0)
-                { 
+                {
                     int s = oinfo->crtc;
                     for (int sc = 0; sc < xiInfo.getCount(); sc++) {
                          if (xiInfo[sc].screen_number == s) {
@@ -1923,9 +1941,9 @@ void YDesktop::updateXineramaInfo(int &w, int &h) {
                 }
             }
 #endif
-	    XRRFreeOutputInfo(oinfo);
+            XRRFreeOutputInfo(oinfo);
         }
-	XRRFreeScreenResources(xrrsr);
+        XRRFreeScreenResources(xrrsr);
     }
 #endif
     if (xiInfo.getCount() < 2) { // use xinerama if no XRANDR screens (nvidia hack)
@@ -1952,8 +1970,8 @@ void YDesktop::updateXineramaInfo(int &w, int &h) {
                 si.height = xsi[i].height;
                 xiInfo.append(si);
             }
-	    if (xsi)
-		    XFree(xsi);
+            if (xsi)
+                    XFree(xsi);
         }
 #endif
     }
@@ -1962,8 +1980,8 @@ void YDesktop::updateXineramaInfo(int &w, int &h) {
         si.screen_number = 0;
         si.x_org = 0;
         si.y_org = 0;
-        si.width = DisplayWidth(xapp->display(), DefaultScreen(xapp->display()));
-        si.height = DisplayHeight(xapp->display(), DefaultScreen(xapp->display()));
+        si.width = xapp->displayWidth();
+        si.height = xapp->displayHeight();
         xiInfo.append(si);
     }
     {
@@ -1975,7 +1993,7 @@ void YDesktop::updateXineramaInfo(int &w, int &h) {
                 w = xiInfo[i].width + xiInfo[i].x_org;
             if (xiInfo[i].y_org + xiInfo[i].height > h)
                 h = xiInfo[i].height + xiInfo[i].y_org;
-            
+
             MSG(("screen %d (%d): %d %d %d %d", i, xiInfo[i].screen_number, xiInfo[i].x_org, xiInfo[i].y_org, xiInfo[i].width, xiInfo[i].height));
         }
     }
@@ -2045,3 +2063,5 @@ KeySym YWindow::keyCodeToKeySym(unsigned int keycode, int index) {
 int YDesktop::getScreenCount() {
     return xiInfo.getCount();
 }
+
+// vim: set sw=4 ts=4 et:

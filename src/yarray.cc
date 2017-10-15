@@ -39,14 +39,7 @@ void YBaseArray::setCapacity(SizeType nCapacity) {
 
 void YBaseArray::append(const void *item) {
     if (fCount >= fCapacity) {
-        const SizeType nCapacity = (fCapacity ? fCapacity * 2 : 4);
-        StorageType *nElements = new StorageType[nCapacity * fElementSize];
-
-        memcpy(nElements, fElements, fCapacity * fElementSize);
-
-        delete[] fElements;
-        fElements = nElements;
-        fCapacity = nCapacity;
+        setCapacity(max(fCapacity * 2, 4));
     }
 
     memcpy(getElement(fCount++), item, fElementSize);
@@ -70,6 +63,9 @@ void YBaseArray::insert(const SizeType index, const void *item) {
         memmove(nElements + (index + 1) * fElementSize,
                 fElements + (index) * fElementSize,
                 (fCount - index) * fElementSize);
+    else if (fCount < index)
+        memset(nElements + fCount * fElementSize,
+               0, (index - fCount) * fElementSize);
 
     if (nElements != fElements) {
         delete[] fElements;
@@ -96,10 +92,7 @@ void YBaseArray::remove(const SizeType index) {
 
 void YBaseArray::clear() {
     delete[] fElements;
-
-    fElements = 0;
-    fCapacity = 0;
-    fCount = 0;
+    release();
 }
 
 void YBaseArray::release() {
@@ -108,9 +101,8 @@ void YBaseArray::release() {
     fCount = 0;
 }
 
-YStringArray::YStringArray(const YStringArray &other):
-YBaseArray(sizeof(char *)) {
-    setCapacity(other.getCapacity());
+YStringArray::YStringArray(const YStringArray &other) : YArray<const char*>() {
+    setCapacity(other.getCount());
 
     for (SizeType i = 0; i < other.getCount(); ++i)
         append(other.getString(i));
@@ -128,8 +120,10 @@ YStringArray::SizeType YStringArray::find(const char *str) {
 }
 
 void YStringArray::remove(const SizeType index) {
-    if (index < getCount()) delete[] getString(index);
-    YBaseArray::remove(index);
+    if (index < getCount()) {
+        delete[] getString(index);
+        YBaseArray::remove(index);
+    }
 }
 
 void YStringArray::clear() {
@@ -146,3 +140,5 @@ char **YStringArray::release() {
     YBaseArray::release();
     return strings;
 }
+
+// vim: set sw=4 ts=4 et:

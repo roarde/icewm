@@ -104,6 +104,7 @@ bool YConfig::parseKey(const char *arg, KeySym *key, unsigned int *mod) {
         { "Shift+", kfShift },
         { "Super+", kfSuper },
     };
+    *key = NoSymbol;
     *mod = 0;
     for (int k = 0; k < (int) ACOUNT(mods); ++k) {
         for (int i = 0; arg[i] == mods[k].key[i]; ++i) {
@@ -314,4 +315,10 @@ bool YConfig::findLoadThemeFile(IApp *app, cfoption *options, upath name) {
     return conf.nonempty() && YConfig::loadConfigFile(options, conf);
 }
 
+size_t YConfig::cfoptionSize() {
+    return sizeof(cfoption);
+}
+
 #endif
+
+// vim: set sw=4 ts=4 et:

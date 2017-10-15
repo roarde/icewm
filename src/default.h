@@ -40,8 +40,8 @@ XIV(bool, taskBarKeepBelow,                     false)
 XIV(bool, taskBarShowClock,                     true)
 XIV(bool, taskBarShowApm,                       false)
 XIV(bool, taskBarShowApmAuto,                   true)
-XIV(bool, taskBarShowApmTime,                   true) // mschy
-XIV(bool, taskBarShowApmGraph,                  true) // hatred
+XIV(bool, taskBarShowApmTime,                   true)
+XIV(bool, taskBarShowApmGraph,                  true)
 XIV(bool, taskBarShowMailboxStatus,             true)
 XIV(bool, taskBarShowStartMenu,                 true)
 XIV(bool, taskBarShowWindowListMenu,            true)
@@ -64,11 +64,11 @@ XIV(bool, taskBarFullscreenAutoShow,            true)
 XIV(bool, taskBarDoubleHeight,                  false)
 XIV(bool, taskBarWorkspacesLeft,                true)
 XIV(bool, taskBarWorkspacesTop,                 false)
-XIV(bool, pagerShowPreview,                     false)
+XIV(bool, pagerShowPreview,                     true)
 XIV(bool, pagerShowWindowIcons,                 true)
 XIV(bool, pagerShowMinimized,                   true)
 XIV(bool, pagerShowBorders,                     true)
-XIV(bool, pagerShowNumbers,                     true)
+XIV(bool, pagerShowNumbers,                     false)
 XIV(bool, taskBarShowCPUStatus,                 true)
 XIV(bool, cpustatusShowRamUsage,                true)
 XIV(bool, cpustatusShowSwapUsage,               true)
@@ -140,7 +140,6 @@ XIV(bool, confirmLogout,                        true)
 #ifdef CONFIG_SHAPED_DECORATION
 XIV(bool, protectClientWindow,                  true)
 #endif
-XIV(bool, activateJava7FocusHack,               false)
 XIV(int, MenuMaximalWidth,                      0)
 XIV(int, EdgeResistance,                        32)
 XIV(int, snapDistance,                          8)
@@ -162,11 +161,12 @@ XIV(int, titleRollupButton,                     2)
 XIV(int, msgBoxDefaultAction,                   0)
 XIV(int, mailCheckDelay,                        30)
 XIV(int, taskBarCPUSamples,                     20)
-XIV(int, taskBarApmGraphWidth,                  10) // hatred
+XIV(int, taskBarApmGraphWidth,                  10)
+XIV(int, taskBarGraphHeight,                    20)
 XIV(int, taskBarMEMSamples,                     20)
 XIV(int, focusRequestFlashTime,                 0)
 XIV(int, focusRequestFlashInterval,             250)
-XIV(int, nestedThemeMenuMinNumber,              15)
+XIV(int, nestedThemeMenuMinNumber,              21)
 XIV(int, batteryPollingPeriod,                  10)
 XIV(int, netWorkAreaBehaviour,                  0)
 
@@ -187,11 +187,14 @@ XSV(const char *, terminalCommand,              "xterm")
 XSV(const char *, logoutCommand,                0)
 XSV(const char *, logoutCancelCommand,          0)
 #if defined(__linux__)
-XSV(const char *, shutdownCommand,              "/bin/sh -c \"{ test -e /run/systemd/system && systemctl poweroff; } ||:\"")
-XSV(const char *, rebootCommand,                "/bin/sh -c \"{ test -e /run/systemd/system && systemctl reboot; } ||:\"")
+// use shell code since those are wrapped through shell in YWindowManager::execAfterFork
+XSV(const char *, shutdownCommand,              "test -e /run/systemd/system && systemctl poweroff")
+XSV(const char *, rebootCommand,                "test -e /run/systemd/system && systemctl reboot")
+XSV(const char *, suspendCommand,               "test -e /run/systemd/system && systemctl suspend")
 #else
 XSV(const char *, shutdownCommand,              0)
 XSV(const char *, rebootCommand,                0)
+XSV(const char *, suspendCommand,               0)
 #endif // LINUX
 XIV(int, taskBarCPUDelay,                       500)
 XIV(int, taskBarMEMDelay,                       500)
@@ -202,7 +205,12 @@ XSV(const char *, cpuClassHint,                 "top.XTerm")
 XIV(bool, cpuCombine,                           true)
 XSV(const char *, netCommand,                   "xterm -name netstat -title 'Network Status' -e netstat -c")
 XSV(const char *, netClassHint,                 "netstat.XTerm")
+#ifdef __linux__
+// use sysfs to build the interface list
+XSV(const char *, netDevice,                    "e* w*")
+#else
 XSV(const char *, netDevice,                    "eth0 wlan0")
+#endif
 XSV(const char *, addressBarCommand,            0)
 #ifdef CONFIG_I18N
 XSV(const char *, fmtTime,                      "%X")
@@ -296,8 +304,8 @@ cfoption icewm_preferences[] = {
     OBV("TaskBarShowClock",                     &taskBarShowClock,              "Show clock on task bar"),
     OBV("TaskBarShowAPMStatus",                 &taskBarShowApm,                "Show APM/ACPI/Battery/Power status monitor on task bar"),
     OBV("TaskBarShowAPMAuto",                   &taskBarShowApmAuto,            "Enable TaskBarShowAPMStatus if a battery is present"),
-    OBV("TaskBarShowAPMTime",                   &taskBarShowApmTime,            "Show APM status on task bar in time-format"),  // mschy
-    OBV("TaskBarShowAPMGraph",                  &taskBarShowApmGraph,           "Show APM status in graph mode"), // hatred
+    OBV("TaskBarShowAPMTime",                   &taskBarShowApmTime,            "Show APM status on task bar in time-format"),
+    OBV("TaskBarShowAPMGraph",                  &taskBarShowApmGraph,           "Show APM status in graph mode"),
     OBV("TaskBarShowMailboxStatus",             &taskBarShowMailboxStatus,      "Show mailbox status on task bar"),
     OBV("TaskBarMailboxStatusBeepOnNewMail",    &beepOnNewMail,                 "Beep when new mail arrives"),
     OBV("TaskBarMailboxStatusCountMessages",    &countMailMessages,             "Count messages in mailbox"),
@@ -359,7 +367,6 @@ cfoption icewm_preferences[] = {
     OBV("DoubleBuffer",                         &doubleBuffer,                  "Use double buffering when redrawing the display"),
     OBV("XRRDisable",                           &xrrDisable,                    "Disable use of new XRANDR API for dual head (nvidia workaround)"),
     OIV("DelayFuzziness",                       &DelayFuzziness, 0, 100,        "Delay fuzziness, to allow merging of multiple timer timeouts into one (notebook power saving)"),
-    OBV("ActivateJava7FocusHack",               &activateJava7FocusHack,        "Activate workaround for Java7 Swing/AWT focus issue"),
     OIV("ClickMotionDistance",                  &ClickMotionDistance, 0, 32,    "Pointer motion distance before click gets interpreted as drag"),
     OIV("ClickMotionDelay",                     &ClickMotionDelay, 0, 2000,     "Delay before click gets interpreted as drag"),
     OIV("MultiClickTime",                       &MultiClickTime, 0, 5000,       "Multiple click time"),
@@ -401,7 +408,8 @@ cfoption icewm_preferences[] = {
     OIV("TaskbarButtonWidthDivisor",            &taskBarButtonWidthDivisor, 1, 25, "default number of tasks in taskbar"),
     OIV("TaskBarWidthPercentage",               &taskBarWidthPercentage, 0, 100, "Task bar width as percentage of the screen width"),
     OSV("TaskBarJustify",                       &taskBarJustify, "Taskbar justify left, right or center"),
-    OIV("TaskBarApmGraphWidth",                 &taskBarApmGraphWidth, 1, 1000,  "Width of APM Monitor"), // hatred
+    OIV("TaskBarApmGraphWidth",                 &taskBarApmGraphWidth, 1, 1000,  "Width of APM Monitor"),
+    OIV("TaskBarGraphHeight",                   &taskBarGraphHeight, 16, 1000,  "Height of taskbar monitoring applets"),
 #endif
 
     OIV("XineramaPrimaryScreen",                &xineramaPrimaryScreen, 0, 63, "Primary screen for xinerama (taskbar, ...)"),
@@ -426,6 +434,7 @@ cfoption icewm_preferences[] = {
     OSV("LogoutCancelCommand",                  &logoutCancelCommand,           "Command to cancel logout"),
     OSV("ShutdownCommand",                      &shutdownCommand,               "Command to shutdown the system"),
     OSV("RebootCommand",                        &rebootCommand,                 "Command to reboot the system"),
+    OSV("SuspendCommand",                       &suspendCommand,                "Command to send the system to standby mode"),
     OSV("CPUStatusCommand",                     &cpuCommand,                    "Command to run on CPU status"),
     OSV("CPUStatusClassHint",                   &cpuClassHint,                  "WM_CLASS to allow runonce for CPUStatusCommand"),
     OBV("CPUStatusCombine",                     &cpuCombine,                    "Combine all CPUs to one"),
@@ -533,3 +542,5 @@ cfoption icewm_preferences[] = {
 
 #include "themable.h"
 #endif /* __DEFAULT_H */
+
+// vim: set sw=4 ts=4 et:

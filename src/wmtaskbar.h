@@ -16,7 +16,7 @@ class MEMStatus;
 class CPUStatus;
 #endif
 #ifdef CONFIG_APPLET_NET_STATUS
-class NetStatus;
+class NetStatusControl;
 #endif
 class AddressBar;
 class MailBoxStatus;
@@ -82,7 +82,7 @@ public:
     virtual bool handleTimer(YTimer *t);
 #endif
 
-    virtual void actionPerformed(YAction *action, unsigned int modifiers);
+    virtual void actionPerformed(YAction action, unsigned int modifiers);
     virtual void handlePopDown(YPopupWindow *popup);
     virtual void handleEndPopup(YPopupWindow *popup);
 
@@ -121,7 +121,7 @@ public:
 
 #ifdef CONFIG_GRADIENTS
     virtual ref<YImage> getGradient() const { return fGradient; }
-#endif    
+#endif
 
     void contextMenu(int x_root, int y_root);
 
@@ -163,7 +163,7 @@ private:
     YApm *fApm;
 #endif
 #ifdef CONFIG_APPLET_NET_STATUS
-    NetStatus **fNetStatus;
+    ref<NetStatusControl> fNetStatus;
 #endif
 
 #ifndef NO_CONFIGURE_MENUS
@@ -194,7 +194,7 @@ private:
 
     friend class WindowList;
     friend class WindowListBox;
-    
+
 #ifdef CONFIG_GRADIENTS
     ref<YImage> fGradient;
 #endif
@@ -210,6 +210,10 @@ private:
 
 extern TaskBar *taskBar; // !!! get rid of this
 
+class YColor* getTaskBarBg();
+
 #endif
 
 #endif
+
+// vim: set sw=4 ts=4 et:

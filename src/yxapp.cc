@@ -9,7 +9,6 @@
 #include "MwmUtil.h"
 #include "prefs.h"
 #include "yprefs.h"
-#include "ypixbuf.h"
 #include "yconfig.h"
 #include "ypointer.h"
 
@@ -495,7 +494,7 @@ void YXApplication::initModifiers() {
     XModifierKeymap *xmk = XGetModifierMapping(xapp->display());
     AltMask = MetaMask = WinMask = SuperMask = HyperMask =
         NumLockMask = ScrollLockMask = ModeSwitchMask = 0;
-    
+
     if (xmk) {
         KeyCode *c = xmk->modifiermap;
 
@@ -743,7 +742,6 @@ int YXApplication::grabEvents(YWindow *win, Cursor ptr, unsigned int eventMask, 
     if (win == 0)
         return 0;
 
-    XSync(display(), 0);
     fGrabTree = grabTree;
     if (grabMouse) {
         fGrabMouse = 1;
@@ -956,7 +954,7 @@ YXApplication::YXApplication(int *argc, char ***argv, const char *displayName):
 
     windowContext = XUniqueContext();
 
-    new YDesktop(0, RootWindow(display(), DefaultScreen(display())));
+    new YDesktop(0, root());
     extern void image_init();
     image_init();
 
@@ -976,8 +974,8 @@ YXApplication::YXApplication(int *argc, char ***argv, const char *displayName):
         int major = 0;
         int minor = 0;
         XRRQueryVersion(display(), &major, &minor);
-            
-        MSG(("XRRVersion: %d %d", major, minor)); 
+
+        MSG(("XRRVersion: %d %d", major, minor));
         if (major > 1 || (major == 1 && minor >= 2)) {
             xrandrSupported = 1;
             xrandr12 = true;
@@ -990,6 +988,8 @@ YXApplication::~YXApplication() {
     xfd.unregisterPoll();
     XCloseDisplay(display());
     fDisplay = 0;
+    delete YColor::white; YColor::white = 0;
+    delete YColor::black; YColor::black = 0;
     xapp = 0;
 }
 
@@ -1046,7 +1046,7 @@ bool YXApplication::handleXEvents() {
 bool YXApplication::handleIdle() {
     return handleXEvents();
 }
- 
+
 void YXApplication::handleWindowEvent(Window xwindow, XEvent &xev) {
     int rc = 0;
     union {
@@ -1060,7 +1060,7 @@ void YXApplication::handleWindowEvent(Window xwindow, XEvent &xev) {
                            &(window.xptr))) == 0)
     {
         if ((xev.type == KeyPress || xev.type == KeyRelease)
-            && window.ptr->toplevel() != 0) 
+            && window.ptr->toplevel() != 0)
         {
             YWindow *w = window.ptr;
 
@@ -1095,7 +1095,7 @@ void YXApplication::handleWindowEvent(Window xwindow, XEvent &xev) {
 }
 
 void YXApplication::flushXEvents() {
-    XSync(display(), False);
+    XFlush(display());
 }
 
 void YXPoll::notifyRead() {
@@ -1109,3 +1109,21 @@ bool YXPoll::forRead() {
 }
 
 bool YXPoll::forWrite() { return false; }
+
+void YAtom::atomize() {
+    if (screen) {
+        char buf[256];
+        snprintf(buf, sizeof buf, "%s%d", name, xapp->screen());
+        atom = xapp->atom(buf);
+    } else {
+        atom = xapp->atom(name);
+    }
+}
+
+YAtom::operator Atom() {
+    if (atom == None)
+        atomize();
+    return atom;
+}
+
+// vim: set sw=4 ts=4 et:

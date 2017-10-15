@@ -5,8 +5,6 @@
  */
 #include "config.h"
 #include "ykey.h"
-#include "ylib.h"
-
 #include "yprefs.h"
 
 #define CFGDEF
@@ -24,8 +22,8 @@
 
 long workspaceCount = 0;
 char *workspaceNames[MAXWORKSPACES];
-YAction *workspaceActionActivate[MAXWORKSPACES];
-YAction *workspaceActionMoveTo[MAXWORKSPACES];
+YAction workspaceActionActivate[MAXWORKSPACES];
+YAction workspaceActionMoveTo[MAXWORKSPACES];
 
 void WMConfig::loadConfiguration(IApp *app, const char *fileName) {
 #ifndef NO_CONFIGURE
@@ -47,6 +45,7 @@ void WMConfig::loadThemeConfiguration(IApp *app, const char *themeName) {
 void WMConfig::freeConfiguration() {
 #ifndef NO_CONFIGURE
     YConfig::freeConfig(icewm_preferences);
+    YConfig::freeConfig(icewm_themable_preferences);
 #endif
 }
 
@@ -54,8 +53,6 @@ void addWorkspace(const char * /*name*/, const char *value, bool append) {
     if (!append) {
         for (int i = 0; i < workspaceCount; i++) {
             delete[] workspaceNames[i];
-            delete workspaceActionActivate[i];
-            delete workspaceActionMoveTo[i];
         }
         workspaceCount = 0;
     }
@@ -63,8 +60,6 @@ void addWorkspace(const char * /*name*/, const char *value, bool append) {
     if (workspaceCount >= MAXWORKSPACES)
         return;
     workspaceNames[workspaceCount] = newstr(value);
-    workspaceActionActivate[workspaceCount] = new YAction(); // !! fix
-    workspaceActionMoveTo[workspaceCount] = new YAction();
     PRECONDITION(workspaceNames[workspaceCount] != NULL);
     workspaceCount++;
 }
@@ -125,19 +120,9 @@ static bool ensureDirectory(const upath& path) {
 }
 
 static upath getDefaultsFilePath(const pstring& basename) {
-    upath xdg(YApplication::getXdgConfDir());
-    if (xdg.dirExists()) {
-        upath file(xdg + basename);
-        if (file.fileExists())
-            return file;
-    }
     upath prv(YApplication::getPrivConfDir());
     if (ensureDirectory(prv)) {
         return prv + basename;
-    }
-    ensureDirectory(xdg.parent());
-    if (ensureDirectory(xdg)) {
-        return xdg + basename;
     }
     return null;
 }
@@ -190,6 +175,7 @@ int WMConfig::setDefault(const char *basename, const char *content) {
     return 0;
 }
 
+#ifndef NO_CONFIGURE
 static void print_options(cfoption *options) {
     for (int i = 0; options[i].type != cfoption::CF_NONE; ++i) {
         if (options[i].notify) {
@@ -221,6 +207,7 @@ static void print_options(cfoption *options) {
         }
     }
 }
+#endif
 
 void WMConfig::print_preferences() {
 #ifndef NO_CONFIGURE
@@ -229,3 +216,5 @@ void WMConfig::print_preferences() {
 #endif
 }
 
+
+// vim: set sw=4 ts=4 et:

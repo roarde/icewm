@@ -8,7 +8,6 @@
 #ifndef __YRESOURCEPATH_H
 #define __YRESOURCEPATH_H
 
-#include <stddef.h>
 #include "ypaint.h"
 #include "yarray.h"
 #include "upath.h"
@@ -18,7 +17,6 @@ upath findPath(ustring path, int mode, upath name,
 
 class YResourcePaths: public refcounted {
 public:
-    static ref<YResourcePaths> paths();
     static ref<YResourcePaths> subdirs(upath subdir, bool themeOnly = false);
 
     ref<YPixmap> loadPixmap(upath base, upath name) const;
@@ -30,15 +28,19 @@ public:
     int getCount() const { return fPaths.getCount(); }
     const upath& getPath(int index) const { return *fPaths[index]; }
 
+    typedef YObjectArray<upath>::IterType IterType;
+    IterType iterator() { return fPaths.iterator(); }
+    IterType reverseIterator() { return fPaths.reverseIterator(); }
+
 protected:
     void verifyPaths(upath base);
-    
+
 private:
     YObjectArray<upath> fPaths;
 
     YResourcePaths() {}
     void addDir(const upath& dir);
-    
+
     template<class Pict>
     void loadPict(const upath& baseName, ref<Pict>* pict) const;
     template<class Pict>
@@ -46,3 +48,5 @@ private:
 };
 
 #endif
+
+// vim: set sw=4 ts=4 et:

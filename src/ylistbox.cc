@@ -9,7 +9,6 @@
 
 #ifndef LITE
 
-#include "ypixbuf.h"
 #include "ykey.h"
 #include "ylistbox.h"
 #include "yrect.h"
@@ -71,8 +70,8 @@ int YListItem::getOffset() {
     return 0;
 }
 
-YListBox::YListBox(YScrollView *view, YWindow *aParent): 
-    YWindow(aParent) INIT_GRADIENT(fGradient, NULL) {
+YListBox::YListBox(YScrollView *view, YWindow *aParent):
+    YWindow(aParent) INIT_GRADIENT(fGradient, null) {
     if (listBoxFont == null)
         listBoxFont = YFont::getFont(XFA(listBoxFontName));
     if (listBoxBg == 0)
@@ -575,7 +574,7 @@ void YListBox::paintItem(Graphics &g, int n) {
         if (fGradient != null)
             g.drawImage(fGradient, 0, y - fOffsetY, width(), lh,
                          0, y - fOffsetY);
-        else 
+        else
 #endif
             if (listbackPixmap != null)
                 g.fillPixmap(listbackPixmap, 0, y - fOffsetY, width(), lh);
@@ -629,7 +628,7 @@ void YListBox::paint(Graphics &g, const YRect &r) {
 #ifdef CONFIG_GRADIENTS
         if (fGradient != null)
             g.drawImage(fGradient, 0, y, width(), height() - y, 0, y);
-        else 
+        else
 #endif
             if (listbackPixmap != null)
             g.fillPixmap(listbackPixmap, 0, y, width(), height() - y);
@@ -854,3 +853,5 @@ YWindow *YListBox::getWindow() {
     return this;
 }
 #endif
+
+// vim: set sw=4 ts=4 et:

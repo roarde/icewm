@@ -13,6 +13,8 @@
 #include "yapp.h"
 #include "yprefs.h"
 #include "intl.h"
+#include <unistd.h>
+#include <fcntl.h>
 
 
 void YResourcePaths::addDir(const upath& dir) {
@@ -23,8 +25,7 @@ void YResourcePaths::addDir(const upath& dir) {
 ref<YResourcePaths> YResourcePaths::subdirs(upath subdir, bool themeOnly) {
     ref<YResourcePaths> paths(new YResourcePaths());
 
-    upath xdgDir(YApplication::getXdgConfDir());
-    upath homeDir(YApplication::getPrivConfDir());
+    upath privDir(YApplication::getPrivConfDir());
 
     upath themeFile(themeName);
     pstring themeExt(themeFile.getExtension());
@@ -36,8 +37,7 @@ ref<YResourcePaths> YResourcePaths::subdirs(upath subdir, bool themeOnly) {
         if (themeOnly) {
             paths->addDir(themeDir);
         } else {
-            paths->addDir(xdgDir);
-            paths->addDir(homeDir);
+            paths->addDir(privDir);
             paths->addDir(themeDir);
             paths->addDir(YApplication::getConfigDir());
             paths->addDir(YApplication::getLibDir());
@@ -49,16 +49,13 @@ ref<YResourcePaths> YResourcePaths::subdirs(upath subdir, bool themeOnly) {
         upath themesPlusThemeDir(themes + themeDir);
 
         if (themeOnly) {
-            paths->addDir(xdgDir + themesPlusThemeDir);
-            paths->addDir(homeDir + themesPlusThemeDir);
+            paths->addDir(privDir + themesPlusThemeDir);
             paths->addDir(YApplication::getConfigDir() + themesPlusThemeDir);
             paths->addDir(YApplication::getLibDir() + themesPlusThemeDir);
 
         } else {
-            paths->addDir(xdgDir + themesPlusThemeDir);
-            paths->addDir(xdgDir);
-            paths->addDir(homeDir + themesPlusThemeDir);
-            paths->addDir(homeDir);
+            paths->addDir(privDir + themesPlusThemeDir);
+            paths->addDir(privDir);
             paths->addDir(YApplication::getConfigDir() + themesPlusThemeDir);
             paths->addDir(YApplication::getConfigDir());
             paths->addDir(YApplication::getLibDir() + themesPlusThemeDir);
@@ -80,11 +77,9 @@ ref<YResourcePaths> YResourcePaths::subdirs(upath subdir, bool themeOnly) {
 }
 
 void YResourcePaths::verifyPaths(upath base) {
-    for (int i = getCount(); --i >= 0; ) {
-        upath path = getPath(i) + base;
-
-        if (!path.isReadable()) {
-            fPaths.remove(i);
+    for (IterType iter = reverseIterator(); ++iter; ) {
+        if (iter->relative(base).isExecutable() == false) {
+            iter.remove();
         }
     }
 }
@@ -142,3 +137,5 @@ ref<YImage> YResourcePaths::loadImage(upath base, upath name) const {
     loadPict(base + name, &p);
     return p;
 }
+
+// vim: set sw=4 ts=4 et:

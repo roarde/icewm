@@ -5,12 +5,7 @@
 #include "ypixmap.h"
 #include "yimage.h"
 #include "mstring.h"
-#if 0
-#include "ypixbuf.h"
-#endif
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
 #ifdef CONFIG_SHAPE
 #define __YIMP_XUTIL__
 #include <X11/extensions/shape.h>
@@ -21,9 +16,7 @@
 #endif
 
 #ifdef CONFIG_XFREETYPE //------------------------------------------------------
-#if CONFIG_XFREETYPE >= 2
 #include <ft2build.h>
-#endif
 #include <X11/Xft/Xft.h>
 #define INIT_XFREETYPE(Member, Value) , Member(Value)
 #else
@@ -33,7 +26,7 @@
 #ifdef CONFIG_GRADIENTS //------------------------------------------------------
 #define TEST_GRADIENT(Cond) (Cond)
 #define IF_CONFIG_GRADIENTS(Cond, Stmt) if (Cond) { Stmt; }
-#else    
+#else
 #define TEST_GRADIENT(Cond) true
 #define IF_CONFIG_GRADIENTS(Cond, Stmt) if (false) {}
 #endif // CONFIG_GRADIENTS -----------------------------------------------------
@@ -41,15 +34,9 @@
 class YWindow;
 class YIcon;
 
-#ifdef SHAPE
-struct XShapeEvent;
-#endif
-
 enum YDirection {
     Up, Left, Down, Right
 };
-
-class YImage;
 
 /******************************************************************************/
 /******************************************************************************/
@@ -59,13 +46,7 @@ public:
     YColor(unsigned short red, unsigned short green, unsigned short blue);
     YColor(unsigned long pixel);
     YColor(char const * clr);
-
-#ifdef CONFIG_XFREETYPE
     ~YColor();
-
-    operator XftColor * ();
-    void allocXft();
-#endif
 
     unsigned long pixel() const { return fPixel; }
 
@@ -75,7 +56,23 @@ public:
     static YColor * black;
     static YColor * white;
 
+    bool operator==(const YColor& c) const {
+        return fRed == c.fRed && fGreen == c.fGreen && fBlue == c.fBlue;
+    }
+    bool operator!=(const YColor& c) const {
+        return !(*this == c);
+    }
+
+#ifdef CONFIG_XFREETYPE
+    operator XftColor*() { return xftColor ? xftColor : allocXft(); }
 private:
+    XftColor* allocXft();
+#endif
+
+private:
+    YColor(const YColor&);
+    YColor& operator=(const YColor&);
+
     void alloc();
 
     unsigned long fPixel;
@@ -91,8 +88,8 @@ private:
 };
 
 struct YDimension {
-    YDimension(unsigned w, unsigned h): w(w), h(h) {}
-    unsigned w, h;
+    YDimension(int w, int h): w(w), h(h) {}
+    int w, h;
 };
 
 /******************************************************************************/
@@ -111,7 +108,7 @@ public:
     virtual int textWidth(const ustring &s) const = 0;
     virtual int textWidth(char const * str, int len) const = 0;
 
-    virtual void drawGlyphs(class Graphics & graphics, int x, int y, 
+    virtual void drawGlyphs(class Graphics & graphics, int x, int y,
                             char const * str, int len) = 0;
 
     int textWidth(char const * str) const;
@@ -147,14 +144,14 @@ public:
     Graphics(const ref<YPixmap> &pixmap, int x_org, int y_org);
     Graphics(Drawable drawable, int w, int h, unsigned long vmask, XGCValues * gcv);
     Graphics(Drawable drawable, int w, int h);
-    virtual ~Graphics();
+    ~Graphics();
 
     void copyArea(const int x, const int y, const int width, const int height,
                   const int dx, const int dy);
-    void copyDrawable(const Drawable d, const int x, const int y, 
+    void copyDrawable(const Drawable d, const int x, const int y,
                       const int w, const int h, const int dx, const int dy);
 #if 0
-    void copyImage(XImage * im, const int x, const int y, 
+    void copyImage(XImage * im, const int x, const int y,
                    const int w, const int h, const int dx, const int dy);
     void copyImage(XImage * im, const int x, const int y) {
         copyImage(im, 0, 0, im->width, im->height, x, y);
@@ -166,15 +163,6 @@ public:
         if (p != null)
             copyDrawable(p->pixmap(), x, y, w, h, dx, dy);
     }
-#if 0
-#ifdef CONFIG_ANTIALIASING
-    void copyPixbuf(class YPixbuf & pixbuf, const int x, const int y,
-                    const int w, const int h, const int dx, const int dy,
-                    bool useAlpha = true);
-    void copyAlphaMask(class YPixbuf & pixbuf, const int x, const int y,
-                       const int w, const int h, const int dx, const int dy);
-#endif
-#endif
 
     void drawPoint(int x, int y);
     void drawLine(int x1, int y1, int x2, int y2);
@@ -198,6 +186,7 @@ public:
     void drawStringMultiline(int x, int y, const ustring &str);
 
     void drawPixmap(ref<YPixmap> pix, int const x, int const y);
+    void drawPixmap(ref<YPixmap> pix, int const x, int const y, int w, int h, int dx, int dy);
     void drawImage(ref<YImage> pix, int const x, int const y);
     void drawImage(ref<YImage> pix, int const x, int const y, int w, int h, int dx, int dy);
     void compositeImage(ref<YImage> pix, int const x, int const y, int w, int h, int dx, int dy);
@@ -254,11 +243,10 @@ public:
             repVert(p->pixmap(), p->width(), p->height(), x, y, h);
     }
 
-    Display * display() const { return fDisplay; }
     int drawable() const { return fDrawable; }
     GC handleX() const { return gc; }
 #ifdef CONFIG_XFREETYPE
-    XftDraw *handleXft() const { return fDraw; }
+    XftDraw *handleXft();
 #endif
 
     YColor * color() const { return fColor; }
@@ -273,11 +261,10 @@ public:
     void setClipMask(Pixmap mask = None);
     void resetClip();
 private:
-    Display * fDisplay;
     Drawable fDrawable;
     GC gc;
 #ifdef CONFIG_XFREETYPE
-    XftDraw * fDraw;
+    XftDraw* fXftDraw;
 #endif
 
     YColor * fColor;
@@ -287,3 +274,5 @@ private:
 };
 
 #endif
+
+// vim: set sw=4 ts=4 et:

@@ -8,7 +8,6 @@
 #include "yxapp.h"
 #include "yaction.h"
 #include "wmmgr.h"
-#include "ypixbuf.h"
 #include "yrect.h"
 #include "sysdep.h"
 #include "ylocale.h"
@@ -569,3 +568,5 @@ int main(int argc, char **argv) {
 
     return app.mainLoop();
 }
+
+// vim: set sw=4 ts=4 et:

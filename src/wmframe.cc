@@ -24,7 +24,6 @@
 #include "wmwinlist.h"
 #include "wmmgr.h"
 #include "wmapp.h"
-#include "ypixbuf.h"
 #include "sysdep.h"
 #include "yrect.h"
 #include "yicon.h"
@@ -43,11 +42,6 @@ extern XContext windowContext;
 extern XContext frameContext;
 extern XContext clientContext;
 
-//int YFrameWindow::fMouseFocusX = -1;
-//int YFrameWindow::fMouseFocusY = -1;
-extern unsigned int ignore_enternotify_hack;
-
-
 bool YFrameWindow::isButton(char c) {
     if (strchr(titleButtonsSupported, c) == 0)
         return false;
@@ -58,8 +52,8 @@ bool YFrameWindow::isButton(char c) {
 
 YFrameWindow::YFrameWindow(
     YActionListener *wmActionListener,
-    YWindow *parent)
-    : YWindow(parent)
+    YWindow *parent, int depth, Visual *visual, Colormap colormap)
+    : YWindow(parent, 0, depth, visual, colormap)
 {
     this->wmActionListener = wmActionListener;
 
@@ -127,7 +121,6 @@ YFrameWindow::YFrameWindow(
     fStrutTop = 0;
     fStrutBottom = 0;
 
-    fUserTime = -1UL;
     fUserTimeWindow = None;
 
     fFullscreenMonitorsTop = -1;
@@ -172,7 +165,7 @@ YFrameWindow::YFrameWindow(
 #ifndef CONFIG_PDA
                                            actionMinimize, actionHide);
 #else
-                                           actionMinimize, 0);
+                                           actionMinimize, actionNull);
 #endif
         //fMinimizeButton->setWinGravity(NorthEastGravity);
         fMinimizeButton->setToolTip(_("Minimize"));
@@ -222,7 +215,7 @@ YFrameWindow::YFrameWindow(
     if (!isButton('s'))
         fMenuButton = 0;
     else {
-        fMenuButton = new YFrameButton(fTitleBar, this, 0);
+        fMenuButton = new YFrameButton(fTitleBar, this, actionNull);
         fMenuButton->show();
         fMenuButton->setActionListener(this);
     }
@@ -239,7 +232,10 @@ YFrameWindow::~YFrameWindow() {
         fKillMsgBox = 0;
     }
 #ifdef CONFIG_GUIEVENTS
-    wmapp->signalGuiEvent(geWindowClosed);
+    if (fWindowType == wtDialog)
+        wmapp->signalGuiEvent(geDialogClosed);
+    else
+        wmapp->signalGuiEvent(geWindowClosed);
 #endif
     if (fAutoRaiseTimer && fAutoRaiseTimer->getTimerListener() == this) {
         fAutoRaiseTimer->stopTimer();
@@ -303,8 +299,8 @@ YFrameWindow::~YFrameWindow() {
             manager->setFirstFrame(fNextCreatedFrame);
     }
     removeFrame();
-    if (switchWindow)
-        switchWindow->destroyedFrame(this);
+    if (wmapp->hasSwitchWindow())
+        wmapp->getSwitchWindow()->destroyedFrame(this);
     if (fClient != 0) {
         if (!fClient->destroyed())
             XRemoveFromSaveSet(xapp->display(), client()->handle());
@@ -368,7 +364,7 @@ void YFrameWindow::doManage(YFrameClient *clientw, bool &doActivate, bool &reque
         normalH = sh ? (h - sh->base_height) / sh->height_inc : h ;
 
 
-        if ((sh->flags & PWinGravity) &&
+        if (sh && (sh->flags & PWinGravity) &&
             sh->win_gravity == StaticGravity)
         {
             normalX += borderXN();
@@ -538,7 +534,7 @@ void YFrameWindow::doManage(YFrameClient *clientw, bool &doActivate, bool &reque
         else
             setWorkspace(workspace);
     } else
-#endif      
+#endif
 #ifdef GNOME1_HINTS
        if (client()->getWinWorkspaceHint(&workspace))
         setWorkspace(workspace);
@@ -583,7 +579,10 @@ void YFrameWindow::afterManage() {
 #endif
 #endif
 #ifdef CONFIG_GUIEVENTS
-    wmapp->signalGuiEvent(geWindowOpened);
+    if (fWindowType == wtDialog)
+        wmapp->signalGuiEvent(geDialogOpened);
+    else
+        wmapp->signalGuiEvent(geWindowOpened);
 #endif
 }
 
@@ -591,49 +590,62 @@ void YFrameWindow::afterManage() {
 // on frame (for resize)
 void YFrameWindow::createPointerWindows() {
     XSetWindowAttributes attributes;
+    unsigned int attrmask = 0;
     unsigned int klass = InputOnly;
 
     attributes.event_mask = 0;
+    attrmask |= CWEventMask;
 
     attributes.cursor = YWMApp::sizeTopPointer.handle();
+    attrmask |= CWCursor;
+
+    attributes.colormap = xapp->colormap();
+    attrmask |= CWColormap;
+
+    attributes.background_pixel = xapp->black();
+    attrmask |= CWBackPixel;
+
+    attributes.border_pixel = xapp->black();
+    attrmask |= CWBorderPixel;
+
     topSide = XCreateWindow(xapp->display(), handle(), 0, 0, 1, 1, 0,
-                            CopyFromParent, klass, CopyFromParent,
-                            CWCursor | CWEventMask, &attributes);
+                            0, klass, xapp->visual(),
+                            attrmask, &attributes);
 
     attributes.cursor = YWMApp::sizeLeftPointer.handle();
     leftSide = XCreateWindow(xapp->display(), handle(), 0, 0, 1, 1, 0,
-                            CopyFromParent, klass, CopyFromParent,
-                            CWCursor | CWEventMask, &attributes);
+                            0, klass, xapp->visual(),
+                            attrmask, &attributes);
 
     attributes.cursor = YWMApp::sizeRightPointer.handle();
     rightSide = XCreateWindow(xapp->display(), handle(), 0, 0, 1, 1, 0,
-                            CopyFromParent, klass, CopyFromParent,
-                            CWCursor | CWEventMask, &attributes);
+                            0, klass, xapp->visual(),
+                            attrmask, &attributes);
 
     attributes.cursor = YWMApp::sizeBottomPointer.handle();
     bottomSide = XCreateWindow(xapp->display(), handle(), 0, 0, 1, 1, 0,
-                            CopyFromParent, klass, CopyFromParent,
-                            CWCursor | CWEventMask, &attributes);
+                            0, klass, xapp->visual(),
+                            attrmask, &attributes);
 
     attributes.cursor = YWMApp::sizeTopLeftPointer.handle();
     topLeftCorner = XCreateWindow(xapp->display(), handle(), 0, 0, 1, 1, 0,
-                                  CopyFromParent, klass, CopyFromParent,
-                                  CWCursor | CWEventMask, &attributes);
+                                  0, klass, xapp->visual(),
+                                  attrmask, &attributes);
 
     attributes.cursor = YWMApp::sizeTopRightPointer.handle();
     topRightCorner = XCreateWindow(xapp->display(), handle(), 0, 0, 1, 1, 0,
-                                   CopyFromParent, klass, CopyFromParent,
-                                   CWCursor | CWEventMask, &attributes);
+                                   0, klass, xapp->visual(),
+                                   attrmask, &attributes);
 
     attributes.cursor = YWMApp::sizeBottomLeftPointer.handle();
     bottomLeftCorner = XCreateWindow(xapp->display(), handle(), 0, 0, 1, 1, 0,
-                                     CopyFromParent, klass, CopyFromParent,
-                                     CWCursor | CWEventMask, &attributes);
+                                     0, klass, xapp->visual(),
+                                     attrmask, &attributes);
 
     attributes.cursor = YWMApp::sizeBottomRightPointer.handle();
     bottomRightCorner = XCreateWindow(xapp->display(), handle(), 0, 0, 1, 1, 0,
-                                      CopyFromParent, klass, CopyFromParent,
-                                      CWCursor | CWEventMask, &attributes);
+                                      0, klass, xapp->visual(),
+                                      attrmask, &attributes);
 
     XMapSubwindows(xapp->display(), handle());
     indicatorsVisible = 1;
@@ -693,7 +705,7 @@ void YFrameWindow::manage(YFrameClient *client) {
 #if 0
     {
         XSetWindowAttributes xswa;
-	xswa.backing_store = Always;
+        xswa.backing_store = Always;
         xswa.win_gravity = NorthWestGravity;
 
         XChangeWindowAttributes(xapp->display(), client->handle(),
@@ -833,7 +845,9 @@ void YFrameWindow::getNewPos(const XConfigureRequestEvent &cr,
 }
 
 void YFrameWindow::configureClient(const XConfigureRequestEvent &configureRequest) {
-    client()->setBorder((configureRequest.value_mask & CWBorderWidth) ? configureRequest.border_width : client()->getBorder());
+
+    if (hasbit(configureRequest.value_mask, CWBorderWidth))
+        client()->setBorder(configureRequest.border_width);
 
     int cx, cy, cw, ch;
     getNewPos(configureRequest, cx, cy, cw, ch);
@@ -879,11 +893,11 @@ void YFrameWindow::configureClient(const XConfigureRequestEvent &configureReques
             switch (xwc.stack_mode) {
             case Above:
                 if (!focusOnAppRaise) {
-	            if (requestFocusOnAppRaise) {
+                    if (requestFocusOnAppRaise) {
                         if (canRaise()) {
                             setWmUrgency(true);
                         }
-	            }
+                    }
                 } else {
                     if (canRaise()) {
                         wmRaise();
@@ -984,9 +998,12 @@ void YFrameWindow::handleClick(const XButtonEvent &up, int /*count*/) {
 
 void YFrameWindow::handleCrossing(const XCrossingEvent &crossing) {
     if (crossing.type == EnterNotify &&
-        (crossing.mode == NotifyNormal || (strongPointerFocus && crossing.mode == NotifyUngrab)) &&
-        crossing.window == handle()
-        && (strongPointerFocus || (crossing.serial != ignore_enternotify_hack && crossing.serial != ignore_enternotify_hack + 1))
+        (crossing.mode == NotifyNormal ||
+         (strongPointerFocus && crossing.mode == NotifyUngrab)) &&
+        crossing.window == handle() &&
+        (strongPointerFocus ||
+         (crossing.serial != YWindow::getLastEnterNotifySerial() &&
+          crossing.serial != YWindow::getLastEnterNotifySerial() + 1))
 #if false
         &&
         (strongPointerFocus ||
@@ -1052,8 +1069,11 @@ void YFrameWindow::handleCrossing(const XCrossingEvent &crossing) {
 }
 
 void YFrameWindow::handleFocus(const XFocusChangeEvent &focus) {
-    if (switchWindow && switchWindow->visible())
-        return ;
+    if (wmapp->hasSwitchWindow()) {
+        if (wmapp->getSwitchWindow()->visible()) {
+            return ;
+        }
+    }
 #if 1
     if (focus.type == FocusIn &&
         focus.mode != NotifyGrab &&
@@ -1351,7 +1371,7 @@ void YFrameWindow::sendConfigure() {
 #endif
 }
 
-void YFrameWindow::actionPerformed(YAction *action, unsigned int modifiers) {
+void YFrameWindow::actionPerformed(YAction action, unsigned int modifiers) {
     if (action == actionRestore) {
         wmRestore();
     } else if (action == actionMinimize) {
@@ -1643,7 +1663,8 @@ void YFrameWindow::wmLower() {
 
         manager->lockFocus();
 #ifdef CONFIG_GUIEVENTS
-        wmapp->signalGuiEvent(geWindowLower);
+        if (getState() ^ WinStateMinimized)
+            wmapp->signalGuiEvent(geWindowLower);
 #endif
         while (w) {
             w->doLower();
@@ -1726,18 +1747,25 @@ void YFrameWindow::wmClose() {
 
 void YFrameWindow::wmConfirmKill() {
 #ifndef LITE
-    if (fKillMsgBox == 0) {
-        YMsgBox *msgbox = new YMsgBox(YMsgBox::mbOK|YMsgBox::mbCancel);
-        ustring title = ustring(_("Kill Client: ")).append(getTitle());
-        fKillMsgBox = msgbox;
+    if (fKillMsgBox)
+        return;
+    fKillMsgBox = wmConfirmKill(ustring(_("Kill Client: ")).append(getTitle()), this);
+#endif
+}
 
-        msgbox->setTitle(title);
-        msgbox->setText(_("WARNING! All unsaved changes will be lost when\n"
-                          "this client is killed. Do you wish to proceed?"));
-        msgbox->autoSize();
-        msgbox->setMsgBoxListener(this);
-        msgbox->showFocused();
-    }
+YMsgBox* YFrameWindow::wmConfirmKill(const ustring& title,
+        YMsgBoxListener *recvr) {
+#ifndef LITE
+    YMsgBox *msgbox = new YMsgBox(YMsgBox::mbOK | YMsgBox::mbCancel);
+    msgbox->setTitle(title);
+    msgbox->setText(_("WARNING! All unsaved changes will be lost when\n"
+            "this client is killed. Do you wish to proceed?"));
+    msgbox->autoSize();
+    msgbox->setMsgBoxListener(recvr);
+    msgbox->showFocused();
+    return msgbox;
+#else
+    return 0;
 #endif
 }
 
@@ -1858,9 +1886,8 @@ void YFrameWindow::updateFocusOnMap(bool& doActivate) {
     }
 
     manager->updateUserTime(fUserTime);
-    if (fUserTime != -1UL)
-        if (fUserTime == 0 || fUserTime != manager->lastUserTime())
-	    doActivate = false;
+    if (doActivate && fUserTime.good())
+        doActivate = (fUserTime.time() && fUserTime == manager->lastUserTime());
 }
 
 void YFrameWindow::wmShow() {
@@ -2088,7 +2115,7 @@ void YFrameWindow::paint(Graphics &g, const YRect &/*r*/) {
 }
 
 void YFrameWindow::handlePopDown(YPopupWindow *popup) {
-    MSG(("popdown %ld up %ld", popup, fPopupActive));
+    MSG(("popdown %p up %p", popup, fPopupActive));
     if (fPopupActive == popup)
         fPopupActive = 0;
 }
@@ -2206,6 +2233,7 @@ void YFrameWindow::wmMoveToWorkspace(long workspace) {
 }
 
 void YFrameWindow::updateAllowed() {
+#ifdef WMSPEC_HINTS
     Atom atoms[12];
     int i = 0;
     if ((fFrameFunctions & ffMove) || (fFrameDecors & fdTitleBar))
@@ -2230,7 +2258,6 @@ void YFrameWindow::updateAllowed() {
     }
     atoms[i++] = _XA_NET_WM_ACTION_STICK;
     atoms[i++] = _XA_NET_WM_ACTION_CHANGE_DESKTOP;
-#ifdef WMSPEC_HINTS
     client()->setNetWMAllowedActions(atoms,i);
 #endif
 }
@@ -2571,14 +2598,14 @@ void YFrameWindow::updateIcon() {
     if (client()->getNetWMIcon(&count, &elem)) {
         ref<YImage> icons[3], largestIcon;
         int sizes[] = { YIcon::smallSize(), YIcon::largeSize(), YIcon::hugeSize()};
-	long *largestIconOffset = elem;
-	int largestIconSize = 0;
+        long *largestIconOffset = elem;
+        int largestIconSize = 0;
 
         // Find icons that match Small-/Large-/HugeIconSize and search
         // for the largest icon from NET_WM_ICON set.
         for (long *e = elem;
              e < elem + count && e[0] > 0 && e[1] > 0;
-	     e += 2 + e[0] * e[1]) {
+             e += 2 + e[0] * e[1]) {
 
             if (e + 2 + e[0] * e[1] <= elem + count) {
 
@@ -2586,30 +2613,30 @@ void YFrameWindow::updateIcon() {
                     largestIconOffset = e;
                     largestIconSize = e[0];
                 }
-    
+
                 // It's possible when huge=large=small, so we must go
                 // through all sizes[]
                 for (int i = 0; i < 3; i++) {
-    
+
                     if (e[0] == sizes[i] && e[0] == e[1] && icons[i] == null)
                         icons[i] = YImage::createFromIconProperty(e + 2, e[0], e[1]);
                 }
             }
-	}
+        }
 
-	// create the largest icon
+        // create the largest icon
         if (largestIconSize > 0) {
-	    largestIcon =
-		YImage::createFromIconProperty(largestIconOffset + 2,
-					       largestIconSize,
+            largestIcon =
+                YImage::createFromIconProperty(largestIconOffset + 2,
+                                               largestIconSize,
                                                largestIconSize);
         }
 
-	// create the missing icons by downscaling the largest icon
-	// Q: Do we need to upscale the largest icon up to missing icon size?
+        // create the missing icons by downscaling the largest icon
+        // Q: Do we need to upscale the largest icon up to missing icon size?
         if (largestIcon != null) {
             for (int i = 0; i < 3; i++) {
-		if (icons[i] == null && sizes[i] < largestIconSize)
+                if (icons[i] == null && sizes[i] < largestIconSize)
                     icons[i] = largestIcon->scale(sizes[i], sizes[i]);
             }
         }
@@ -2624,7 +2651,7 @@ void YFrameWindow::updateIcon() {
         else // compatibility
             fFrameIcon = newClientIcon(count/2, 2, elem);
         XFree(elem);
-    } else 
+    } else
 #endif
        if (client()->getKwmIcon(&count, &pixmap) && count == 2) {
         XWMHints *h = client()->hints();
@@ -2708,7 +2735,7 @@ void YFrameWindow::addAsTransient() {
         fOwner = manager->findFrame(groupLeader);
 
         if (fOwner) {
-            MSG(("transient for 0x%lX: 0x%lX", groupLeader, fOwner));
+            MSG(("transient for 0x%lX: 0x%p", groupLeader, fOwner));
             PRECONDITION(fOwner->transient() != this);
 
             fNextTransient = fOwner->transient();
@@ -2819,25 +2846,20 @@ bool YFrameWindow::avoidFocus() {
         return false;
 #endif
 
-    if (client()->protocols() & YFrameClient::wpTakeFocus)
+    if ((client()->protocols() & YFrameClient::wpTakeFocus) ||
+        (frameOptions() & foAppTakesFocus))
         return false;
 
     return true;
 }
 
 bool YFrameWindow::getInputFocusHint() {
-//    if (fClient == 0) return true;
     XWMHints *hints = fClient->hints();
     bool input = true;
 
-    if (!(frameOptions() & YFrameWindow::foIgnoreNoFocusHint)) {
-        if (hints && (hints->flags & InputHint) && !hints->input) {
-            if ((client()->protocols() & YFrameClient::wpTakeFocus) ||
-                (frameOptions() & foAppTakesFocus))
-            {
-                input = false;
-            }
-        }
+    if (!(frameOptions() & YFrameWindow::foIgnoreNoFocusHint) &&
+        (hints && (hints->flags & InputHint) && !hints->input)) {
+        input = false;
     }
     if (frameOptions() & foDoNotFocus) {
         input = false;
@@ -2851,7 +2873,7 @@ void YFrameWindow::setWorkspace(long workspace) {
         return ;
     if (workspace != fWinWorkspace) {
         fWinWorkspace = workspace;
-#if defined(GNOME1_HINTS) || defined(WMSPEC_HINTS)        
+#if defined(GNOME1_HINTS) || defined(WMSPEC_HINTS)
         client()->setWinWorkspaceHint(fWinWorkspace);
 #endif
         updateState();
@@ -2958,7 +2980,7 @@ void YFrameWindow::updateLayer(bool restack) {
         fWinActiveLayer = newLayer;
         insertFrame(true);
 
-#if defined(GNOME1_HINTS) || defined(WMSPEC_HINTS)        
+#if defined(GNOME1_HINTS) || defined(WMSPEC_HINTS)
         if (client())
             client()->setWinLayerHint(fWinActiveLayer);
 #endif
@@ -3327,12 +3349,12 @@ void YFrameWindow::updateLayout() {
                 int monitor[4] = { fFullscreenMonitorsTop, fFullscreenMonitorsBottom,
                                    fFullscreenMonitorsLeft, fFullscreenMonitorsRight };
                 manager->getScreenGeometry(&x, &y, &w, &h, monitor[0]);
-                YRect* r = new YRect(x, y, w, h);
+                YRect r(x, y, w, h);
                 for (int i = 1; i < 4; i++) {
                     manager->getScreenGeometry(&x, &y, &w, &h, monitor[i]);
-                    r->unionRect(x, y, w, h);
+                    r.unionRect(x, y, w, h);
                 }
-                setWindowGeometry(*r);
+                setWindowGeometry(r);
             } else if (fullscreenUseAllMonitors) {
                 setWindowGeometry(YRect(0, 0, manager->width(), manager->height()));
             } else {
@@ -3358,7 +3380,8 @@ void YFrameWindow::updateLayout() {
     if (affectsWorkArea())
         manager->updateWorkArea();
 #ifdef WMSPEC_HINTS
-    client()->setNetFrameExtents(borderX(), borderX(), borderY() + titleY(), borderY());
+    if (client())
+        client()->setNetFrameExtents(borderX(), borderX(), borderY() + titleY(), borderY());
 #endif
 }
 
@@ -3396,7 +3419,7 @@ void YFrameWindow::setState(long mask, long state) {
             client()->restoreSizeHints();
         }
     }
-    
+
     // !!! move here
 
     fWinState = fNewState;
@@ -3600,7 +3623,7 @@ void YFrameWindow::updateTaskBar() {
     bool needTaskBarApp = true;
 
     if (taskBar && fManaged) {
-	if (isSkipTaskBar())
+        if (isSkipTaskBar())
             needTaskBarApp = false;
         if (isHidden())
             needTaskBarApp = false;
@@ -3702,29 +3725,24 @@ void YFrameWindow::updateNetWMStrutPartial() {
 
 void YFrameWindow::updateNetStartupId() {
     unsigned long time = -1UL;
-    client()->getNetStartupId(time);
-    if (time != fUserTime) {
-        fUserTime = time;
-        if (time != 0 && time != -1UL)
-            manager->updateUserTime(time);
+    if (client()->getNetStartupId(time)) {
+        if (fUserTime.update(time))
+            manager->updateUserTime(fUserTime);
     }
 }
 
 void YFrameWindow::updateNetWMUserTime() {
     unsigned long time = -1UL;
     Window window = fUserTimeWindow ? fUserTimeWindow : client()->handle();
-    client()->getNetWMUserTime(window, time);
-    if (time != fUserTime) {
-        fUserTime = time;
-        if (time != 0 && time != -1UL)
-            manager->updateUserTime(time);
+    if (client()->getNetWMUserTime(window, time)) {
+        if (fUserTime.update(time))
+            manager->updateUserTime(fUserTime);
     }
 }
 
 void YFrameWindow::updateNetWMUserTimeWindow() {
     Window window = fUserTimeWindow;
-    client()->getNetWMUserTimeWindow(window);
-    if (window != fUserTimeWindow) {
+    if (client()->getNetWMUserTimeWindow(window) && window != fUserTimeWindow) {
         if (fUserTimeWindow != None) {
             XDeleteContext(xapp->display(), fUserTimeWindow,
                     windowContext);
@@ -3739,6 +3757,17 @@ void YFrameWindow::updateNetWMUserTimeWindow() {
         }
         updateNetWMUserTime();
     }
+}
+
+void YFrameWindow::updateNetWMWindowOpacity() {
+    long data[1] = { 0, };
+    if (client()->getNetWMWindowOpacity(data[0]))
+        XChangeProperty(xapp->display(), handle(),
+                _XA_NET_WM_WINDOW_OPACITY, XA_CARDINAL,
+                32, PropModeReplace,
+                (unsigned char *) data, 1);
+    else
+        XDeleteProperty(xapp->display(), handle(), _XA_NET_WM_WINDOW_OPACITY);
 }
 
 void YFrameWindow::updateNetWMFullscreenMonitors(int t, int b, int l, int r) {
@@ -3977,3 +4006,5 @@ int YFrameWindow::getRightCoord(int Mx, YFrameWindow **w, int count)
 
     return Mx;
 }
+
+// vim: set sw=4 ts=4 et:

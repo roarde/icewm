@@ -38,7 +38,7 @@
 #ifndef __YCONFIG_H__
 #define __YCONFIG_H__
 
-#if CONFIG_XFREETYPE >= 2
+#ifdef CONFIG_XFREETYPE
 #define FONT(pt) "-*-sans-medium-r-*-*-*-" #pt "-*-*-*-*-*-*"
 #define BOLDFONT(pt) "-*-sans-bold-r-*-*-*-" #pt "-*-*-*-*-*-*"
 #define TTFONT(pt) "-*-monospace-medium-r-*-*-*-" #pt "-*-*-*-*-*-*"
@@ -129,6 +129,9 @@ public:
     static bool findLoadThemeFile(IApp *app, cfoption *options, upath name);
     static void parseConfiguration(cfoption *options, char *data);
     static bool parseKey(const char *arg, KeySym *key, unsigned int *mod);
+    static size_t cfoptionSize();
 };
 
 #endif
+
+// vim: set sw=4 ts=4 et:

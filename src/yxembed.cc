@@ -1,7 +1,4 @@
-#include "config.h"
-#include "ylib.h"
 #include "yxembed.h"
-#include "yapp.h"
 
 YXEmbed::YXEmbed(YWindow *aParent):
     YWindow(aParent)
@@ -23,12 +20,16 @@ YXEmbedClient::~YXEmbedClient() {
 void YXEmbedClient::handleDestroyWindow(const XDestroyWindowEvent &destroyWindow) {
     MSG(("embed client destroy"));
 
-    fEmbedder->destroyedClient(handle());
-
-    YWindow::handleDestroyWindow(destroyWindow);
+    if (destroyWindow.window == handle()) {
+        if (false == fEmbedder->destroyedClient(handle())) {
+            YWindow::handleDestroyWindow(destroyWindow);
+        }
+    }
 }
 
 void YXEmbedClient::handleUnmap(const XUnmapEvent &/*unmap*/) {
 //    YWindow::handleUnmap(unmap);
     fEmbedder->handleClientUnmap(handle());
 }
+
+// vim: set sw=4 ts=4 et:

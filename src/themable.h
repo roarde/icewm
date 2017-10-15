@@ -10,6 +10,8 @@ XIV(bool, prettyClock,                          true)
 #endif
 XIV(bool, rolloverTitleButtons,                 false)
 
+XIV(int, trayIconMaxWidth,                      32)
+XIV(int, trayIconMaxHeight,                     24)
 XIV(bool, trayDrawBevel,                        false)
 XIV(bool, titleBarCentered,                     false)
 XIV(bool, titleBarJoinLeft,                     false)
@@ -128,9 +130,9 @@ XSV(const char *, clrClock,                     "rgb:00/00/00")
 XSV(const char *, clrClockText,                 "rgb:00/FF/00")
 XSV(const char *, clrApm,                       "rgb:00/00/00")
 XSV(const char *, clrApmText,                   "rgb:00/FF/00")
-XSV(const char *, clrApmBat,                    "rgb:FF/FF/00") // hatred: Yellow
-XSV(const char *, clrApmLine,                   "rgb:00/FF/00") // hatred: Green
-XSV(const char *, clrApmGraphBg,                "rgb:00/00/00") // hatred: Black
+XSV(const char *, clrApmBat,                    "rgb:FF/FF/00")
+XSV(const char *, clrApmLine,                   "rgb:00/FF/00")
+XSV(const char *, clrApmGraphBg,                "rgb:00/00/00")
 XSV(const char *, clrInput,                     "rgb:FF/FF/FF")
 XSV(const char *, clrInputText,                 "rgb:00/00/00")
 XSV(const char *, clrInputSelection,            "rgb:80/80/80")
@@ -165,6 +167,9 @@ cfoption icewm_themable_preferences[] = {
     OBV("RolloverButtonsSupported",             &rolloverTitleButtons,          "Does it support the 'O' title bar button images (for mouse rollover)"),
 #endif
     OBV("TaskBarClockLeds",                     &prettyClock,                   "Task bar clock/APM uses nice pixmapped LCD display (but then it doesn't display correctly in many languages anymore, e.g. for Japanese and Korean it works only when a real font is used and not the LEDs"),
+
+    OIV("TrayIconMaxWidth",                     &trayIconMaxWidth, 16, 128,     "Maximum scaled width of tray icons"),
+    OIV("TrayIconMaxHeight",                    &trayIconMaxHeight, 16, 128,    "Maximum scaled height of tray icons"),
     OBV("TrayDrawBevel",                        &trayDrawBevel,                 "Surround the tray with plastic border"),
 
     OBV("TitleBarCentered",                     &titleBarCentered,              "Draw window title centered (obsoleted by TitleBarJustify)"),
@@ -205,27 +210,27 @@ cfoption icewm_themable_preferences[] = {
 /************************************************************************************************************************************************************
  * Font definitions
  ************************************************************************************************************************************************************/
-    OFV("TitleFontName",                        &titleFontName,                 ""),
-    OFV("MenuFontName",                         &menuFontName,                  ""),
-    OFV("StatusFontName",                       &statusFontName,                ""),
-    OFV("QuickSwitchFontName",                  &switchFontName,                ""),
-    OFV("NormalButtonFontName",                 &normalButtonFontName,          ""),
-    OFV("ActiveButtonFontName",                 &activeButtonFontName,          ""),
+    OFV("TitleFontName",                        &titleFontName,                 "Name of the title bar font."),
+    OFV("MenuFontName",                         &menuFontName,                  "Name of the menu font."),
+    OFV("StatusFontName",                       &statusFontName,                "Name of the status display font."),
+    OFV("QuickSwitchFontName",                  &switchFontName,                "Name of the font for Alt+Tab switcher window."),
+    OFV("NormalButtonFontName",                 &normalButtonFontName,          "Name of the normal button font."),
+    OFV("ActiveButtonFontName",                 &activeButtonFontName,          "Name of the active button font."),
 #ifdef CONFIG_TASKBAR
-    OFV("NormalTaskBarFontName",                &normalTaskBarFontName,         ""),
-    OFV("ActiveTaskBarFontName",                &activeTaskBarFontName,         ""),
-    OFV("ToolButtonFontName",                   &toolButtonFontName,            "fallback: NormalButtonFontName"),
-    OFV("NormalWorkspaceFontName",              &normalWorkspaceFontName,       "fallback: NormalButtonFontName"),
-    OFV("ActiveWorkspaceFontName",              &activeWorkspaceFontName,       "fallback: ActiveButtonFontName"),
+    OFV("NormalTaskBarFontName",                &normalTaskBarFontName,         "Name of the normal task bar item font."),
+    OFV("ActiveTaskBarFontName",                &activeTaskBarFontName,         "Name of the active task bar item font."),
+    OFV("ToolButtonFontName",                   &toolButtonFontName,            "Name of the tool button font (fallback: NormalButtonFontName)."),
+    OFV("NormalWorkspaceFontName",              &normalWorkspaceFontName,       "Name of the normal workspace button font (fallback: NormalButtonFontName)."),
+    OFV("ActiveWorkspaceFontName",              &activeWorkspaceFontName,       "Name of the active workspace button font (fallback: ActiveButtonFontName)."),
 #endif
-    OFV("MinimizedWindowFontName",              &minimizedWindowFontName,       ""),
-    OFV("ListBoxFontName",                      &listBoxFontName,               ""),
-    OFV("ToolTipFontName",                      &toolTipFontName,               ""),
-    OFV("ClockFontName",                        &clockFontName,                 ""),
-    OFV("TempFontName",                         &tempFontName,                  ""),
-    OFV("ApmFontName",                          &apmFontName,                   ""),
-    OFV("InputFontName",                        &inputFontName,                 ""),
-    OFV("LabelFontName",                        &labelFontName,                 ""),
+    OFV("MinimizedWindowFontName",              &minimizedWindowFontName,       "Name of the mini-window font."),
+    OFV("ListBoxFontName",                      &listBoxFontName,               "Name of the window list font."),
+    OFV("ToolTipFontName",                      &toolTipFontName,               "Name of the tool tip font."),
+    OFV("ClockFontName",                        &clockFontName,                 "Name of the task bar clock font."),
+    OFV("TempFontName",                         &tempFontName,                  "Name of the task bar temperature font."),
+    OFV("ApmFontName",                          &apmFontName,                   "Name of the task bar battery font."),
+    OFV("InputFontName",                        &inputFontName,                 "Name of the input field font."),
+    OFV("LabelFontName",                        &labelFontName,                 "Name of the label font."),
 /************************************************************************************************************************************************************
  * Color definitions
  ************************************************************************************************************************************************************/
@@ -311,9 +316,10 @@ cfoption icewm_themable_preferences[] = {
 #ifdef CONFIG_APPLET_APM
     OSV("ColorApm",                             &clrApm,                        "Background of APM monitor, leave empty to force transparency"),
     OSV("ColorApmText",                         &clrApmText,                    "Textcolor of APM monitor"),
-    OSV("ColorApmBattary",                      &clrApmBat,                     "Color of APM monitor in battary mode"), // hatred
-    OSV("ColorApmLine",                         &clrApmLine,                    "Color of APM monitor in line mode"),    // hatred
-    OSV("ColorApmGraphBg",                      &clrApmGraphBg,                 "Background color for graph mode"),      // hatred
+    OSV("ColorApmBattary",                      &clrApmBat,                     "Legacy option; don't use, see ColorApmBattery"),
+    OSV("ColorApmBattery",                      &clrApmBat,                     "Color of APM monitor in battery mode"),
+    OSV("ColorApmLine",                         &clrApmLine,                    "Color of APM monitor in line mode"),
+    OSV("ColorApmGraphBg",                      &clrApmGraphBg,                 "Background color for graph mode"),
 #endif
 #ifdef CONFIG_APPLET_CPU_STATUS
     OSV("ColorCPUStatusUser",                   &clrCpuUser,                    "User load on the CPU monitor"),
@@ -346,3 +352,5 @@ cfoption icewm_themable_preferences[] = {
 
 #endif
 #endif
+
+// vim: set sw=4 ts=4 et:

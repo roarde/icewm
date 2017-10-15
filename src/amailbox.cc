@@ -22,7 +22,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-static YColor *taskBarBg = 0;
+extern YColor* getTaskBarBg();
 
 MailCheck::MailCheck(MailBoxStatus *mbx):
     state(IDLE), fMbx(mbx), fLastSize(-1), fLastCount(-1),
@@ -144,12 +144,12 @@ void MailCheck::startCheck() {
         }
     } else {
         if (sk.connect((struct sockaddr *) &server_addr, sizeof(server_addr))
-            == 0) 
-	{
+            == 0)
+        {
             state = CONNECTING;
             got = 0;
-	} else {
-	    error();
+        } else {
+            error();
         }
     }
 }
@@ -326,9 +326,6 @@ YWindow(aParent), fMailBox(mailbox), check(this)
 {
     this->app = app;
     this->smActionListener = smActionListener;
-    if (taskBarBg == 0) {
-        taskBarBg = new YColor(clrDefaultTaskBar);
-    }
 
     setSize(16, 16);
     fMailboxCheckTimer = 0;
@@ -387,7 +384,7 @@ void MailBoxStatus::paint(Graphics &g, const YRect &/*r*/) {
                 g.fillPixmap(taskbackPixmap, 0, 0,
                              width(), height(), this->x(), this->y());
         else {
-            g.setColor(taskBarBg);
+            g.setColor(getTaskBarBg());
             g.fillRect(0, 0, width(), height());
         }
     }
@@ -474,3 +471,5 @@ bool MailBoxStatus::handleTimer(YTimer *t) {
 }
 
 #endif
+
+// vim: set sw=4 ts=4 et:

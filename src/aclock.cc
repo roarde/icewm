@@ -21,34 +21,26 @@
 
 #ifdef CONFIG_APPLET_CLOCK
 
-YColor *YClock::clockBg = 0;
-YColor *YClock::clockFg = 0;
-ref<YFont> YClock::clockFont;
-
-static YColor *taskBarBg = 0;
 static char const *AppletClockTimeFmt = "%T";
 
 inline char const * strTimeFmt(struct tm const & t) {
-    if ((ledPixColon == null) || (! prettyClock))
+    if ((ledPixColon == null) || (! prettyClock) || strcmp(fmtTime, "%X"))
         return (fmtTimeAlt && (t.tm_sec & 1) ? fmtTimeAlt : fmtTime);
     return AppletClockTimeFmt;
 }
 
 YClock::YClock(YSMListener *smActionListener, YWindow *aParent): YWindow(aParent) {
     this->smActionListener = smActionListener;
-    if (clockBg == 0 && *clrClock)
-        clockBg = new YColor(clrClock);
-    if (clockFg == 0)
-        clockFg = new YColor(clrClockText);
-    if (clockFont == null)
-        clockFont = YFont::getFont(XFA(clockFontName));
-    if (taskBarBg == 0) {
-        taskBarBg = new YColor(clrDefaultTaskBar);
-    }
+    clockBg = *clrClock ? new YColor(clrClock) : 0;
+    clockFg = new YColor(clrClockText);
+    clockFont = YFont::getFont(XFA(clockFontName));
 
     clockUTC = false;
     toolTipUTC = false;
     transparent = -1;
+
+    if (prettyClock && ledPixSpace != null && ledPixSpace->width() == 1)
+        ledPixSpace = ledPixSpace->scale(5, ledPixSpace->height());
 
     clockTimer = new YTimer(1000);
     clockTimer->setFixed();
@@ -61,6 +53,9 @@ YClock::YClock(YSMListener *smActionListener, YWindow *aParent): YWindow(aParent
 
 YClock::~YClock() {
     delete clockTimer; clockTimer = 0;
+    delete clockBg; clockBg = 0;
+    delete clockFg; clockFg = 0;
+    clockFont = null;
 }
 
 void YClock::autoSize() {
@@ -97,7 +92,7 @@ void YClock::autoSize() {
     }
     if (!prettyClock)
         maxWidth += 4;
-    setSize(maxWidth, 20);
+    setSize(maxWidth, taskBarGraphHeight);
 }
 
 void YClock::handleButton(const XButtonEvent &button) {
@@ -179,30 +174,29 @@ void YClock::paint(Graphics &g, const YRect &/*r*/) {
 #endif
         len = strftime(s, sizeof(s), strTimeFmt(*t), t);
 
-    
+
     //clean backgroung first, so that it is possible
     //to use transparent lcd pixmaps
     if (hasTransparency()) {
 #ifdef CONFIG_GRADIENTS
         ref<YImage> gradient(parent()->getGradient());
-    
+
         if (gradient != null)
             g.drawImage(gradient, this->x(), this->y(),
                          width(), height(), 0, 0);
-        else 
+        else
 #endif
         if (taskbackPixmap != null) {
             g.fillPixmap(taskbackPixmap, 0, 0,
                          width(), height(), this->x(), this->y());
         }
         else {
-            g.setColor(taskBarBg);
+            g.setColor(getTaskBarBg());
             g.fillRect(0, 0, width(), height());
         }
     }
 
     if (prettyClock) {
-        i = len - 1;
         for (i = len - 1; x >= 0; i--) {
             ref<YPixmap> p;
             if (i >= 0)
@@ -319,3 +313,5 @@ bool YClock::hasTransparency() {
     return false;
 }
 #endif
+
+// vim: set sw=4 ts=4 et:

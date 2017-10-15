@@ -6,48 +6,19 @@
 
 #include <string.h>
 
-#if CONFIG_XFREETYPE == 1
-static int haveXft = -1;
-#endif
-
 extern ref<YFont> getXftFont(ustring name, bool antialias);
 extern ref<YFont> getXftFontXlfd(ustring name, bool antialias);
 extern ref<YFont> getCoreFont(const char*);
 
-#ifdef CONFIG_XFREETYPE
 ref<YFont> YFont::getFont(ustring name, ustring xftFont, bool antialias) {
-#else
-ref<YFont> YFont::getFont(ustring name, ustring xftFont, bool) {
-#endif
-    ref<YFont> font;
-
-#if CONFIG_XFREETYPE == 1
-    if (haveXft == -1) {
-        int renderEvents, renderErrors;
-
-        haveXft = (XRenderQueryExtension(xapp->display(), &renderEvents, &renderErrors) &&
-                   XftDefaultHasRender(xapp->display())) ? 1 : 0;
-
-        MSG(("RENDER extension: %d", haveXft));
-        haveXft = 1;
-    }
-#endif
-
 #ifdef CONFIG_XFREETYPE
-#if CONFIG_XFREETYPE == 1
-    if (haveXft)
-#endif
-    {
-        if (xftFont != null && xftFont.length() > 0)
-            return getXftFont(xftFont, antialias);
-        else
-            return getXftFontXlfd(name, antialias);
-    }
-#endif
-
-#ifdef CONFIG_COREFONTS
+    if (xftFont != null && xftFont.length() > 0)
+        return getXftFont(xftFont, antialias);
+    return getXftFontXlfd(name, antialias);
+#elif defined(CONFIG_COREFONTS)
     return getCoreFont(cstring(name));
 #else
+    (void) antialias;
     return null;
 #endif
 }
@@ -75,7 +46,7 @@ int YFont::multilineTabPos(const char *str) const {
 }
 
 YDimension YFont::multilineAlloc(const char *str) const {
-    unsigned const tabPos(multilineTabPos(str));
+    const int tabPos(multilineTabPos(str));
     YDimension alloc(0, ascent());
 
     for (const char * end(strchr(str, '\n')); end;
@@ -99,3 +70,5 @@ YDimension YFont::multilineAlloc(const ustring &str) const {
     cstring cs(str);
     return multilineAlloc(cs.c_str());
 }
+
+// vim: set sw=4 ts=4 et:

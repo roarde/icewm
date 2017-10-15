@@ -36,7 +36,7 @@ template<class T> T non_zero(T x) { return x ? x : 1; }
 /******************************************************************************/
 
 YWindowManagerStatus::YWindowManagerStatus(YWindow *aParent,
-                                           ustring (*templFunc)())
+                const ustring &sampleString)
     : YWindow(aParent)
 {
     if (statusBg == 0)
@@ -46,9 +46,9 @@ YWindowManagerStatus::YWindowManagerStatus(YWindow *aParent,
     if (statusFont == null)
         statusFont = YFont::getFont(XFA(statusFontName));
 
-    int sW = statusFont->textWidth(templFunc());
+    int sW = statusFont->textWidth(sampleString);
     int sH = statusFont->height();
-    
+
     setGeometry(YRect((manager->width() - sW) / 2,
                       (manager->height() - sH) - 8, // / 2,
                       sW + 2, sH + 4));
@@ -60,7 +60,7 @@ YWindowManagerStatus::~YWindowManagerStatus() {
 
 void YWindowManagerStatus::paint(Graphics &g, const YRect &/*r*/) {
     ustring status(null);
-    
+
     g.setColor(statusBg);
     g.drawBorderW(0, 0, width() - 1, height() - 1, true);
     if (switchbackPixmap != null)
@@ -69,7 +69,7 @@ void YWindowManagerStatus::paint(Graphics &g, const YRect &/*r*/) {
         g.fillRect(1, 1, width() - 3, height() - 3);
     g.setColor(statusFg);
     g.setFont(statusFont);
-    
+
     status = getStatus();
     g.drawChars(status,
                 width() / 2 - statusFont->textWidth(status) / 2,
@@ -89,8 +89,11 @@ void YWindowManagerStatus::begin() {
 /******************************************************************************/
 /******************************************************************************/
 
+#define statusTemplate "9999x9999+9999+9999"
+
 MoveSizeStatus::MoveSizeStatus(YWindow *aParent)
-  : YWindowManagerStatus(aParent, templateFunction) {
+  : YWindowManagerStatus(aParent, mstring(statusTemplate, sizeof(statusTemplate)-1)),
+        fX(0), fY(0), fW(0), fH(0) {
 }
 
 MoveSizeStatus::~MoveSizeStatus() {
@@ -114,7 +117,7 @@ void MoveSizeStatus::setStatus(YFrameWindow *frame, const YRect &r) {
 
     int width = r.width() - frame->borderX() * 2;
     int height = r.height() - frame->borderY() * 2 - frame->titleY();
-    
+
     fX = r.x();
     fY = r.y();
     if (sh && (sh->flags & PResizeInc)) {
@@ -129,7 +132,7 @@ void MoveSizeStatus::setStatus(YFrameWindow *frame, const YRect &r) {
 
 void MoveSizeStatus::setStatus(YFrameWindow *frame) {
     XSizeHints *sh = frame->client()->sizeHints();
-    
+
     fX = frame->x ();//// + frame->borderX ();
     fY = frame->y ();//// + frame->borderY () + frame->titleY ();
     if (sh && (sh->flags & PResizeInc)) {
@@ -140,10 +143,6 @@ void MoveSizeStatus::setStatus(YFrameWindow *frame) {
         fH = frame->client()->height();
     }
     repaintSync();
-}
-
-ustring MoveSizeStatus::templateFunction() {
-    return "9999x9999+9999+9999";
 }
 
 /******************************************************************************/
@@ -159,8 +158,8 @@ public:
 
 /******************************************************************************/
 
-WorkspaceStatus::WorkspaceStatus(YWindow *aParent)
-  : YWindowManagerStatus(aParent, templateFunction) {
+WorkspaceStatus::WorkspaceStatus(YWindow *aParent, const ustring& templateString)
+  : YWindowManagerStatus(aParent, templateString), workspace(0), timer(0), timeout(0) {
 // !!! read timeout from preferences
     timer = new YTimer(workspaceStatusTime);
     timer->setTimerListener(timeout = new Timeout());
@@ -187,14 +186,14 @@ void WorkspaceStatus::begin(long workspace) {
 void WorkspaceStatus::setStatus(long workspace) {
     this->workspace = workspace;
     repaintSync();
-    
+
     if (timer->isRunning())
         timer->stopTimer();
 
     timer->startTimer();
 }
 
-ustring WorkspaceStatus::templateFunction() {
+WorkspaceStatus * WorkspaceStatus::createInstance(YWindow *aParent) {
     const char* longestWorkspaceName = NULL;
     int maxWorkspaceNameLength = 0;
 
@@ -208,7 +207,9 @@ ustring WorkspaceStatus::templateFunction() {
         }
     }
 
-    return getStatus(longestWorkspaceName);
+    return new WorkspaceStatus(aParent, getStatus(longestWorkspaceName));
 }
 
 #endif
+
+// vim: set sw=4 ts=4 et:

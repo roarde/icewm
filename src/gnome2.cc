@@ -18,7 +18,6 @@ char const * ApplicationName = "icewm-menu-gnome2";
 #include "ylib.h"
 #include "default.h"
 
-#include "ypixbuf.h"
 #include "yapp.h"
 #include "sysdep.h"
 #include "base.h"
@@ -370,3 +369,5 @@ int main(int argc, char **argv) {
     msg("Usage: %s [ --open PATH | --list PATH ]", argv[0]);
 }
 #endif
+
+// vim: set sw=4 ts=4 et:

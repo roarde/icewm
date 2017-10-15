@@ -9,6 +9,20 @@
 #endif
 
 class YWindowManager;
+class AboutDlg;
+class CtrlAltDelete;
+class SwitchWindow;
+
+enum FocusModels {
+    FocusCustom,
+    FocusClick,
+    FocusSloppy,
+    FocusExplicit,
+    FocusStrict,
+    FocusQuiet,
+    FocusModelCount,
+    FocusModelLast = FocusModelCount - 1
+};
 
 class YSMListener {
 public:
@@ -17,13 +31,13 @@ public:
     virtual void runOnce(const char *resource, const char *path, char *const *args) = 0;
     virtual void runCommandOnce(const char *resource, const char *cmdline) = 0;
 protected:
-    virtual ~YSMListener() {}; 
+    virtual ~YSMListener() {};
 };
 
-class YWMApp: 
-    public YSMApplication, 
-    public YActionListener, 
-    public YMsgBoxListener, 
+class YWMApp:
+    public YSMApplication,
+    public YActionListener,
+    public YMsgBoxListener,
     public YSMListener
 {
 public:
@@ -37,7 +51,7 @@ public:
     virtual void handleSignal(int sig);
     virtual bool handleIdle();
     virtual bool filterEvent(const XEvent &xev);
-    virtual void actionPerformed(YAction *action, unsigned int modifiers);
+    virtual void actionPerformed(YAction action, unsigned int modifiers);
 
     virtual void handleMsgBox(YMsgBox *msgbox, int operation);
     virtual void handleSMAction(int message);
@@ -46,12 +60,21 @@ public:
     void logout();
     void cancelLogout();
 
+    // drop ties to own clients/windows since those are now destroyed by unmanageClients
+    inline void clientsAreUnmanaged() {
+        fLogoutMsgBox = 0;
+        aboutDlg = 0;
+    }
+
 #ifdef CONFIG_SESSION
     virtual void smSaveYourselfPhase2();
     virtual void smDie();
 #endif
 
+#ifndef NO_CONFIGURE
     void setFocusMode(int mode);
+#endif
+    void initFocusMode();
 
     virtual void restartClient(const char *path, char *const *args);
     virtual void runOnce(const char *resource, const char *path, char *const *args);
@@ -72,11 +95,25 @@ public:
 
 #ifndef LITE
     static ref<YIcon> getDefaultAppIcon();
+
+    bool hasCtrlAltDelete() const { return ctrlAltDelete != 0; }
+    CtrlAltDelete* getCtrlAltDelete();
 #endif
+    bool hasSwitchWindow() const { return switchWindow != 0; }
+    SwitchWindow* getSwitchWindow();
 
 private:
-    YWindowManager *fWindowManager;
+    char** mainArgv;
+
+    // XXX: these pointers are PITA because they can become wild when objects
+    // are destroyed independently by manager. What we need is something like std::weak_ptr...
     YMsgBox *fLogoutMsgBox;
+    AboutDlg* aboutDlg;
+
+#ifndef LITE
+    CtrlAltDelete* ctrlAltDelete;
+#endif
+    SwitchWindow* switchWindow;
 
     void runRestart(const char *path, char *const *args);
 
@@ -92,12 +129,9 @@ private:
     static void initPixmaps();
 };
 
-#ifdef CONFIG_GUIEVENTS
 extern YWMApp * wmapp;
-#endif
 
 extern YMenu *windowMenu;
-extern YMenu *occupyMenu;
 extern YMenu *layerMenu;
 extern YMenu *moveMenu;
 
@@ -114,15 +148,17 @@ extern YMenu *windowListPopup;
 extern YMenu *windowListAllPopup;
 #endif
 
-extern YMenu *maximizeMenu;
 extern YMenu *logoutMenu;
 
 #ifndef NO_CONFIGURE_MENUS
 class ObjectMenu;
 extern ObjectMenu *rootMenu;
+
+class KProgram;
+extern YObjectArray<KProgram> keyProgs;
 #endif
-class CtrlAltDelete;
-extern CtrlAltDelete *ctrlAltDelete;
 extern int rebootOrShutdown;
 
 #endif
+
+// vim: set sw=4 ts=4 et:

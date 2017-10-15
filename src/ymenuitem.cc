@@ -13,7 +13,6 @@
 #include "yapp.h"
 #include "yprefs.h"
 #include "prefs.h"
-#include "ypixbuf.h"
 #include "yicon.h"
 
 #include <string.h>
@@ -21,11 +20,11 @@
 extern ref<YFont> menuFont;
 
 YMenuItem::YMenuItem(const ustring &name, int aHotCharPos, const ustring &param,
-                     YAction *action, YMenu *submenu) :
+                     YAction action, YMenu *submenu) :
     fName(name), fParam(param), fAction(action),
     fHotCharPos(aHotCharPos), fSubmenu(submenu), fIcon(null),
     fChecked(false), fEnabled(true) {
-    
+
     if (fName != null && (fHotCharPos == -2 || fHotCharPos == -3)) {
         int i = fName.indexOf('_');
         if (i != -1) {
@@ -44,18 +43,18 @@ YMenuItem::YMenuItem(const ustring &name, int aHotCharPos, const ustring &param,
                 fHotCharPos = -1;
         }
     }
-    
-    if (fName == null || fHotCharPos >= fName.length() || fHotCharPos < -1)
+
+    if (fName == null || fHotCharPos >= (int) fName.length() || fHotCharPos < -1)
         fHotCharPos = -1;
 }
 
 YMenuItem::YMenuItem(const ustring &name) :
-    fName(name), fParam(null), fAction(NULL), fHotCharPos (-1),
+    fName(name), fParam(null), fAction(actionNull), fHotCharPos (-1),
     fSubmenu(0), fIcon(null), fChecked(false), fEnabled(true) {
 }
 
 YMenuItem::YMenuItem():
-    fName(null), fParam(null), fAction(0), fHotCharPos(-1),
+    fName(null), fParam(null), fAction(actionNull), fHotCharPos(-1),
     fSubmenu(0), fIcon(null), fChecked(false), fEnabled(false) {
 }
 
@@ -73,8 +72,8 @@ void YMenuItem::setIcon(ref<YIcon> icon) {
     fIcon = icon;
 }
 
-void YMenuItem::actionPerformed(YActionListener *listener, YAction *action, unsigned int modifiers) {
-    if (listener && action)
+void YMenuItem::actionPerformed(YActionListener *listener, YAction action, unsigned int modifiers) {
+    if (listener && action != actionNull)
         listener->actionPerformed(action, modifiers);
 }
 
@@ -136,3 +135,5 @@ int YMenuItem::getParamWidth() const {
     ustring param = getParam();
     return  param != null ? menuFont->textWidth(param) : 0;
 }
+
+// vim: set sw=4 ts=4 et:
